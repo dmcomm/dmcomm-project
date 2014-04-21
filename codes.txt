@@ -1,0 +1,172 @@
+
+LIST OF CODES FOR VARIOUS TOYS
+
+Paste a code into the serial monitor, or use it as a command-line argument to dmscope.
+
+Codes written as "V1" or "X1" must be "1". Codes written as "V2" or "X2" can be changed to "1" with no problem (choose whichever you prefer).
+
+Note that all codes have an inverted meaning from what you see when using them. If the code says "I win the battle", the real toy loses the battle. If the code says "I give item A", the real toy receives item A. If the code reports a jogress evolution, the real toy will do the corresponding evolution if compatible.
+
+
+
+V-Pet battle
+
+V1-FC03-FD02  real toy wins (against Agumon)
+V1-B34C-FD02  real toy wins (against MetalGreymon)
+V1-FC03-FE01  real toy loses (against Agumon)
+V1-B34C-FE01  real toy loses (against MetalGreymon)
+
+
+
+Pendulum battle
+
+V1-211F-000F-080F-EABF  real toy wins (against Phantomon)
+V1-211F-000F-09FF-EABF  real toy loses (against Phantomon)
+
+
+
+Progress battle
+
+V1-9841-2201-8001-3A01-2001  real toy wins (against Terriermon)
+V1-8921-AFB1-8001-3A01-4001  real toy wins against WarGreymon: to evolve MetalGarurumon X -> Omegamon
+V1-A971-6FF1-8001-3BF1-D001  real toy loses (against Omegamon)
+
+
+
+PenX battle
+
+X1-0159-4379-0009-C009  real toy wins (against Kuwagamon X)
+X1-0159-4379-0009-C1F9  real toy loses (against Kuwagamon X)
+
+
+
+Pendulum jogress
+
+Code          What it says           What it's good for
+
+V2-146F-F8DF  Ikkakumon -> Whamon    Adult Va2/Da -> Perfect Va2
+V2-146F-D8FF  Ikkakumon -> Anomalo-  Adult Vi -> Perfect Da2
+
+V2-148F-D8DF  Seadramon -> Whamon    Adult Va -> Perfect Va2
+V2-148F-B8FF  Seadramon -> Anomalo-  Adult Da2 -> Perfect Da2
+
+V2-249F-98FF  Wizarmon -> Pumpmon    Adult Da1 -> Perfect Da2
+V2-249F-691F  Wizarmon -> Phantomon  Adult Vi -> Perfect Vi2
+
+V2-24BF-78FF  Bakemon -> Pumpmon     Adult Va -> Perfect Da2
+V2-24BF-491F  Bakemon -> Phantomon   Adult Vi1/Da -> Perfect Vi2
+
+V2-24EF-F93F  DeathMera- -> Boltmon  Perfect Da2 -> Ultimate Da
+V2-24FF-E93F  Pumpmon -> Boltmon     Perfect Da1 -> Ultimate Da
+
+V2-250F-B94F  MarineD- -> Pukumon    Perfect Vi2 -> Ultimate Vi (not Pen2)
+V2-550F-894F  HolyAnge- -> Omegamon  Perfect Vi2 -> Ultimate Vi (not Pen0)
+V2-151F-B94F  Dagomon -> Pukumon     Perfect Vi1 -> Ultimate Vi (not Pen2)
+V2-251F-A94F  Phantomon -> Piemon    Perfect Vi1 -> Ultimate Vi (not Pen3)
+
+V2-553F-594F  MetalGaru- -> Omega-   WarGreymon -> Omegamon (Pen0)
+V2-552F-694F  WarGreymon -> Omega-   MetalGarurumon -> Omegamon (Pen0)
+
+
+
+Progress jogress
+
+Code  V2-81A1-EA51     
+Says  XV-Mon -> Megadramon
+For   Tyranomon -> Paildramon, Angemon -> Angewomon, Dobermon -> Mihiramon
+
+Code  V2-81B1-1A11
+Says  Tyranomon -> Paildramon
+For   XV-Mon -> Megadramon, Witchmon -> Antiramon, Aquilamon -> Cerberumon X
+
+Code  V2-8211-BBF1
+Says  MetalGreymon -> Megidramon
+For   MegaloGrowmon -> Imperialdramon, Bastemon -> Seraphimon, WereGarurumon -> Qinglongmon
+
+Code  V2-8251-EB81
+Says  MegaloGrowmon -> Imperialdramon
+For   MetalGreymon -> Megidramon, HolyAngemon -> Cherubimon, GrappLeomon -> Baihumon
+
+
+
+Japanese D-3 eggs
+
+Tested on version 1. This gives the egg to the D-3. Select the empty box to not give one in return.
+
+V2-8C0F-480F  courage
+V2-8C1F-380F  friendship
+V2-8C2F-280F  miracles
+V2-8C3F-180F  love
+V2-8C4F-080F  purity-sincerity
+V2-8C5F-F80F  knowledge
+V2-8C6F-E80F  sincerity-reliability
+V2-8C7F-D80F  light
+V2-8C8F-C80F  hope
+V2-8C9F-B80F  kindness
+
+
+
+Japanese D-3 jogress
+
+Code  V2-841F-B80F
+Says  Stingmon -> Dinobeemon
+For   XV-Mon -> Paildramon
+
+Code  V2-840F-C80F
+Says  XV-Mon -> Paildramon
+For   Stingmon -> Dinobeemon
+
+It is possible to solve the other versions even if you only have one D-3. Contact BladeSabre for help.
+
+It is not possible to jogress to Ultimate (this requires SwanLink).
+
+
+
+PenX trade
+
+This gives the item to the PenX. Select meat or protein to not give anything in return.
+
+X2-0439-9009  meat-L
+X2-0449-8009  protein+
+X2-0459-7009  str-max
+X2-0469-6009  aqua orb
+X2-0479-5009  metal rise
+X2-0489-4009  sky wing
+X2-0499-3009  zombie meat
+X2-04A9-2009  forest leaf
+X2-04B9-1009  d-poison
+X2-04C9-0009  cho-energy
+X2-04D9-F009  master tag
+X2-04E9-E009  evo-5
+X2-04F9-D009  level reverse
+
+
+
+PenX jogress
+
+(incomplete)
+
+Code  V2-0D29-8189 
+Says  Greymon X -> Dorugremon
+For   Dorugamon -> Dorugremon
+
+Code  V2-0C99-2189 
+Says  Dorugamon -> Dorugremon
+For   Greymon X -> Dorugremon
+
+Code  V2-0D89-2279 
+Says  Dorugremon -> Dorugoramon
+For   Ookuwamon X -> Dorugoramon
+
+Code  V2-0E49-5279 
+Says  Ookuwamon X -> Dorugoramon
+For   Dorugremon -> Dorugoramon
+
+Code  V2-0E49-8339
+Says  Ookuwamon X -> GrandisKuwagamon
+For   Triceramon X -> UltimateBrachimon
+
+Code  V2-1E49-7339
+Says  Triceramon X -> UltimateBrachimon
+For   Ookuwamon X -> GrandisKuwagamon
+
