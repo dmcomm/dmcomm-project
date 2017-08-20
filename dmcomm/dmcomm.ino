@@ -50,13 +50,14 @@ const unsigned long listen_timeout = 3000000;
 const unsigned int gofirst_repeat_ms = 5000;
 const unsigned int serial_timeout_ms = 6000;
 const unsigned int inactive_delay_ms = 1000;
+const unsigned int ended_capture_ms = 500;
 
 
 //buffer sizes
 
-const byte serial_buffer_size = 40;
-const byte send_buffer_size = 6;
-const int log_length = 600;
+const byte serial_buffer_size = 80;
+const byte send_buffer_size = 12;
+const int log_length = 1200;
 
 
 //bytes for log protocol
@@ -126,7 +127,7 @@ void initDmTimes(boolean is_x) {
         dm_times.bit1_low = 1667; 
         dm_times.bit0_high = 1000; 
         dm_times.bit0_low = 3167;
-        dm_times.send_recovery = 100;
+        dm_times.send_recovery = 300;
         dm_times.bit1_high_min = 1833;
     }
 }
@@ -427,6 +428,7 @@ void commListen(boolean X) {
     while (result == 0 || result >= 13) {
         result = rcvPacket(0);
     }
+    delayByTicks((long)ended_capture_ms * 1000);
     ledOn();
     Serial.println();
     return;
@@ -452,6 +454,7 @@ void commBasic(boolean X, boolean goFirst, byte length, unsigned int * toSend) {
             break;
         }
     }
+    delayByTicks((long)ended_capture_ms * 1000);
     ledOn();
     Serial.println();
 }
