@@ -1,27 +1,20 @@
 /*
-  Copyright (c) 2014, BladeSabre
+  Project using Arduino to communicate with Digimon toys
 
-  Redistribution and use in source and binary forms, with or without
-  modification, are permitted provided that the following conditions are
-  met:
-   
-  * Redistributions of source code must retain the above copyright notice,
-    this list of conditions and the following disclaimer.
-  * Redistributions in binary form must reproduce the above copyright
-    notice, this list of conditions and the following disclaimer in the
-    documentation and/or other materials provided with the distribution.
-   
-  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-  IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-  TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-  PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER
-  OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
-  EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-  PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-  PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-  LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
-  NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+  Copyright (c) 2014,2017,2018 BladeSabre
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 
@@ -56,8 +49,7 @@ const unsigned int ended_capture_ms = 500;
 //buffer sizes
 
 const byte serial_buffer_size = 80;
-const byte send_buffer_size = 12;
-const int log_length = 1200;
+const int log_length = 1000;
 
 
 //bytes for log protocol
@@ -418,6 +410,80 @@ void sendPacket(unsigned int bits) {
 
 //high-level communication functions
 
+//read next packet from buffer; write bits to send into bitsNew and update checksum
+//bitsRcvd is the packet just received (ignored except with ^ token)
+//return number of bytes read from buffer on success, 0 if empty, -1 on failure
+int makePacket(unsigned int * bitsNew, char * checksum, unsigned int bitsRcvd, byte * buffer) {
+    char digits[4];
+    char dCur;
+    char dCurChk = -1;
+    char chkTarget = -1;
+    int bufCur = 1;
+    byte b1, b2;
+    char val1, val2;
+    if (buffer[0] == '\0') {
+        return 0;
+    }
+    //require first character dash
+    if (buffer[0] != '-') {
+        return -1;
+    }
+    //unpack bitsRcvd into digits
+    for (dCur = 3; dCur >= 0; dCur --) {
+        digits[dCur] = bitsRcvd & 0xF;
+        bitsRcvd >>= 4;
+    }
+    for (dCur = 0; dCur < 4; dCur ++) {
+        b1 = buffer[bufCur];
+        if (b1 == '\0') {
+            return -1;
+        }
+        bufCur ++;
+        b2 = buffer[bufCur];
+        val1 = hex2val(b1);
+        val2 = hex2val(b2);
+        if (b1 == '@' || b1 == '^') {
+            //expect a hex digit to follow
+            if (val2 == -1) {
+                return -1;
+            }
+            if (b1 == '@') {
+                //here is check digit
+                dCurChk = dCur;
+                chkTarget = val2;
+            } else {
+                //xor received bits with new value
+                digits[dCur] ^= val2;
+            }
+            bufCur ++; //extra digit taken
+        } else {
+            //expect this to be a hex digit
+            if (val1 == -1) {
+                return -1;
+            }
+            //store (overwrite) digit
+            digits[dCur] = val1;
+        }
+        if (b1 != '@') {
+            //update checksum
+            (*checksum) += digits[dCur];
+            (*checksum) &= 0xF;
+        }
+    }
+    if (dCurChk != -1) {
+        //we have a check digit
+        digits[dCurChk] = (chkTarget - (*checksum)) & 0xF;
+        (*checksum) = chkTarget;
+    }
+    //pack digits into bitsNew
+    (*bitsNew) = 0;
+    for (dCur = 0; dCur < 4; dCur ++) {
+        (*bitsNew) <<= 4;
+        (*bitsNew) |= digits[dCur];
+    }
+    return bufCur;
+}
+
 //just listen for sequences of incoming messages,
 //e.g. if only the first packet is wanted, or listening to 2 toys
 void commListen(boolean X) {
@@ -435,22 +501,37 @@ void commListen(boolean X) {
 }
 
 //interact with the toy on the other end of the connection
-void commBasic(boolean X, boolean goFirst, byte length, unsigned int * toSend) {
-    byte i;
+void commBasic(boolean X, boolean goFirst, byte * buffer) {
+    unsigned int bitsRcvd = 0;
+    unsigned int bitsToSend = 0;
+    char checksum = 0;
+    int bufCur = 2;
+    int result;
     initDmTimes(X);
     if (goFirst) {
         delay(gofirst_repeat_ms);
         //delayByTicks((long)gofirst_repeat_ms * 1000);
     } else {
-        if (rcvPacket(listen_timeout)) {
+        if (rcvPacketGet(&bitsRcvd, listen_timeout)) {
             Serial.println();
             return;
         }
     }
     ledOff();
-    for (i = 0; i < length; i ++) {
-        sendPacket(toSend[i]);
-        if (rcvPacket(0)) {
+    while (1) {
+        result = makePacket(&bitsToSend, &checksum, bitsRcvd, buffer + bufCur);
+        if (result == 0) {
+            //the end
+            break;
+        }
+        if (result == -1) {
+            //makePacket error
+            Serial.write("s:?");
+            break;
+        }
+        bufCur += result;
+        sendPacket(bitsToSend);
+        if (rcvPacketGet(&bitsRcvd, 0)) {
             break;
         }
     }
@@ -460,19 +541,7 @@ void commBasic(boolean X, boolean goFirst, byte length, unsigned int * toSend) {
 }
 
 
-
 //serial processing
-
-//convert buffer to upper case in-place
-void upperCase(byte length, char * buffer) {
-    byte i;
-    for (i = 0; i < length; i ++) {
-        if (buffer[i] >= 'a' && buffer[i] <= 'z') {
-            buffer[i] -= 'a';
-            buffer[i] += 'A';
-        }
-    }
-}
 
 //return integer value of hex digit character, or -1 if not a hex digit
 char hex2val(char hexdigit) {
@@ -487,17 +556,6 @@ char hex2val(char hexdigit) {
         value = -1;
     }
     return value;
-}
-
-//return integer value of 4 hex digit string, assuming correct input
-unsigned int hexQuad2int(byte * str) {
-    char i;
-    unsigned int result = 0;
-    for (i = 0; i < 4; i ++) {
-        result <<= 4;
-        result += hex2val(str[i]); 
-    }
-    return result;
 }
 
 //print number onto serial as hex, with specified number of digits
@@ -517,6 +575,7 @@ void serialPrintHex(unsigned int number, char digits) {
 }
 
 //try to read from serial into buffer;
+//read until end-of-line and replace that with a null terminator
 //return 0 on failure, or positive integer for number of characters read
 char serialRead(byte * buffer) {
     unsigned long timeStart;
@@ -543,11 +602,12 @@ char serialRead(byte * buffer) {
             buffer[i] = incomingByte;
             i += 1;
         }
-    } while (incomingByte != '\r' && incomingByte != '\n' && i < serial_buffer_size);
+    } while (incomingByte != '\r' && incomingByte != '\n' && i < serial_buffer_size - 1);
     if (incomingByte != '\r' && incomingByte != '\n') {
         Serial.println("too long");
         return 0;
     }
+    buffer[i] = '\0';
     return i;
 }
 
@@ -560,12 +620,10 @@ void loop() {
     static boolean listenOnly;
     static boolean goFirst;
     static byte numPackets;
-    static unsigned int toSend[send_buffer_size];
     static byte buffer[serial_buffer_size];
 
     int i, j;
     byte bufCursor;
-    byte tsCursor;
 
     //process serial input
     i = serialRead(buffer);
@@ -617,21 +675,20 @@ void loop() {
                 active = false;
                 Serial.print("?");
             }
-            //buffer[2] discarded
         }
         if (i < 7 && !listenOnly) {
             active = false;
         }
         if (active && !listenOnly) {
-            numPackets = (i - 2) / 5;
-            if (numPackets > send_buffer_size) {
-                numPackets = send_buffer_size;
+            numPackets = 0;
+            for(i = 2; buffer[i] != '\0'; i ++) {
+                if (buffer[i] == '-') {
+                    numPackets ++;
+                }
             }
-            for (tsCursor = 0; tsCursor < numPackets; tsCursor ++) {
-                toSend[tsCursor] = hexQuad2int(buffer + (tsCursor*5) + 3);
-                Serial.print("-");
-                serialPrintHex(toSend[tsCursor], 4);
-            }
+            Serial.print("-[");
+            Serial.print(numPackets);
+            Serial.print(" packets]");
         }
         if (!active) {
             Serial.print("N");
@@ -645,7 +702,7 @@ void loop() {
         if (listenOnly) {
             commListen(X);
         } else {
-            commBasic(X, goFirst, numPackets, toSend);
+            commBasic(X, goFirst, buffer);
         }
         if (debug) {
             Serial.print("c:");
