@@ -63,19 +63,3 @@ d:XX XX XX... - the digital trace and events (only with debug enabled)
 
 There are also some descriptive messages about what it is doing. It will echo back commands it receives so you can see if they were delivered and processed as expected.
 
-
-
-OSCILLOSCOPE MODULE
-
-So long as everything is in good working order, the Arduino serial monitor is sufficient (and is probably easier to use). However, the dmscope.py program gives some useful visual information.
-
-It requires Pygame and pySerial. Edit the name of the serial port near the top of the file to match your system. It takes one command-line argument, which is the code, the same as for a serial command.
-
-Use the left/right arrow keys to navigate the history of traces captured. Press space to print the full data for the current trace to the console.
-
-The line of text at the top of the Pygame window shows where you are in the history, and the short description of the result.
-
-The next section is a frequency plot of the voltages detected - the most common voltages should be in the green areas, with nothing in the red.
-
-The main section is the digital trace, of signal level against time, split across multiple rows. There are also some coloured dots to mark events.
-

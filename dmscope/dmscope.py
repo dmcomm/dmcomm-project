@@ -1,4 +1,6 @@
-#  Copyright (c) 2014, BladeSabre
+#!/usr/bin/env python3
+
+#  Copyright (c) 2014,2020 BladeSabre
 #
 #  Redistribution and use in source and binary forms, with or without
 #  modification, are permitted provided that the following conditions are
@@ -23,9 +25,6 @@
 #  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
-serialPort = "/dev/ttyACM0"  #you might need to change this!
-
-
 #graphics dimensions
 
 screenWidth = 800
@@ -41,7 +40,7 @@ traceMargin = 6
 
 ########################################
 
-import sys, time, serial, pygame, threading, Queue
+import sys, time, serial, pygame, threading, queue
 
 
 log_prefix_low   = 0b00000000
@@ -71,7 +70,7 @@ def renderCounts(c):
         else:
             col = pygame.Color("dark red")
         pygame.draw.rect(screen, col, rect, 0)
-        offsetPos = countsRowH * count / m
+        offsetPos = countsRowH * count // m
         yL = countsY + countsRowH - offsetPos
         pygame.draw.line(screen, pygame.Color("white"), (x1, yL), (x2, yL))
         if n > 0:
@@ -104,10 +103,11 @@ def renderTrace(d, reporting=0):
             prevCount = None
             prevLevel = None
             counts.append((item, None))
-    counts.append((prevLevel, prevCount))
+    if prevLevel is not None:
+        counts.append((prevLevel, prevCount))
     
     if reporting > 1:
-        print counts
+        print(counts)
     countsCut = [[]]
     x = 0
     row = 0
@@ -125,7 +125,7 @@ def renderTrace(d, reporting=0):
             countsCut[row].append((level, count))
             x += count
     if reporting > 1:
-        print countsCut
+        print(countsCut)
     
     y = traceY
     prevLevel = None
@@ -169,11 +169,12 @@ def renderTrace(d, reporting=0):
     rect = pygame.Rect(0, y, screenWidth, traceMargin)
     pygame.draw.rect(screen, pygame.Color("dark red"), rect, 0)
 
-def display(cursor, curmax, (r, c, d), reporting=0):
+def display(cursor, curmax, data, reporting=0):
+    (r, c, d) = data
     if reporting:
-        print r
-        print c
-        print d
+        print(r)
+        print(c)
+        print(d)
     
     cstr = str(cursor+1) + "/" + str(curmax+1) + " "
     screen.fill(pygame.Color("black"))
@@ -224,12 +225,12 @@ def pygameThread():
 
 def consoleThread():
     time.sleep(2)
-    ser.write("d1\n")
-    ser.write(code + "\n")
+    ser.write("d1\n".encode("ascii"))
+    ser.write((code + "\n").encode("ascii"))
     c = None
     r = None
     while 1:
-        line = ser.readline().rstrip()
+        line = ser.readline().decode("ascii").rstrip()
         if line != "":
             if line.startswith("c:"):
                 c = line
@@ -238,28 +239,37 @@ def consoleThread():
                 resultQ.put((r, c, d), True)
             elif line.startswith("r:") or line.startswith("s:") or line == "t":
                 r = line
-                print line
+                print(line)
             else:
-                print line
+                print(line)
 
-resultQ = Queue.Queue()
+resultQ = queue.Queue()
 test = False
 
-ser = serial.Serial(serialPort, 9600)
+print("\n***dmscope***")
+if len(sys.argv) < 2:
+    print("required arg: serialPort")
+    sys.exit()
+serialPort = sys.argv[1]
 
-code = sys.argv[1]
-if code == "testxt1":
+if serialPort == "testxt1":
     #X1-0459-7009: computer trades Str-Max for PenX's meat
     test = True
     testR = "s:0459 r:0409 s:7009 r:C009"
     testC = "c:08C0 0002 0001 0000 0000 0000 0001 0000 0120 0187 0000 0000 0000 0000 0000 0000"
     testD = "d:40 E0 4F E1 27 84 E2 4A E3 08 E6 4F 07 E5 45 11 E5 45 11 E6 4F 07 E6 4F 07 E5 45 11 E6 4F 07 E5 45 11 E5 45 11 E5 45 11 E6 4F 07 E5 45 11 E5 45 11 E5 45 11 E5 45 11 E5 45 11 40 E7 40 C0 5F 00 C1 2F 84 40 C2 4A 00 C3 07 40 C4 4F 07 40 C6 45 12 40 C5 44 13 40 C5 4F 07 40 C6 45 12 40 C5 44 13 40 C5 44 12 40 C5 45 12 40 C5 44 13 40 C5 44 12 40 C5 4F 08 40 C6 44 13 40 C5 44 12 40 C5 45 12 40 C5 44 13 40 C5 44 10 40 C5 40 C8 40 E0 4F E1 27 84 E2 4A E3 08 E6 4F 07 E5 45 11 E5 45 11 E6 4F 07 E5 45 11 E5 45 11 E5 45 11 E5 45 11 E5 45 11 E5 45 11 E5 45 11 E5 45 11 E6 4F 07 E6 4F 07 E6 4F 07 E5 45 11 40 E7 40 C0 42 81 00 C1 2F 84 40 C2 4A 00 C3 07 40 C4 4F 07 40 C6 45 12 40 C5 45 12 40 C5 4F 07 40 C6 45 12 40 C5 44 13 40 C5 44 12 40 C5 45 12 40 C5 45 12 40 C5 44 13 40 C5 44 12 40 C5 45 12 40 C5 44 13 40 C5 44 12 40 C5 4F 08 40 C6 4F 05 40 C6 40 C8"
-if code == "testxt2":
+elif serialPort == "testxt2":
     #X2-0459-7009: computer trades Str-Max for PenX's meat
     test = True
     testR = "r:0409 s:0459 r:C009 s:7009 t"
     testC = "c:08AA 0000 0000 0001 0000 0000 0000 0099 1B28 18B9 0000 0000 0000 0000 0000 0000"
     testD = "d:40 C0 54 80 83 00 C1 27 84 40 C2 49 00 C3 07 40 C4 4F 08 40 C6 44 13 40 C5 44 12 40 C5 4F 08 40 C6 44 12 40 C5 45 12 40 C5 45 12 40 C5 44 13 40 C5 44 12 40 C5 45 12 40 C5 4F 07 40 C6 45 12 40 C5 45 12 40 C5 44 13 40 C5 44 12 40 C5 45 10 40 C5 40 C8 40 E0 4F E1 27 84 E2 4A E3 08 E6 4F 07 E5 45 11 E5 45 11 E6 4F 07 E6 4F 07 E5 45 11 E6 4F 07 E5 45 11 E5 45 11 E5 45 11 E6 4F 07 E5 45 11 E5 45 11 E5 45 11 E5 45 11 E5 45 11 40 E7 40 C0 6A 00 C1 20 84 40 C2 49 00 C3 07 40 C4 4F 08 40 C6 44 13 40 C5 44 12 40 C5 4F 08 40 C6 44 12 40 C5 45 12 40 C5 45 12 40 C5 44 13 40 C5 44 12 40 C5 45 12 40 C5 45 12 40 C5 44 12 40 C5 45 12 40 C5 45 12 40 C5 4F 07 40 C6 4F 05 40 C6 40 C8 40 E0 4F E1 27 84 E2 4A E3 08 E6 4F 07 E5 45 11 E5 45 11 E6 4F 07 E5 45 11 E5 45 11 E5 45 11 E5 45 11 E5 45 11 E5 45 11 E5 45 11 E5 45 11 E6 4F 07 E6 4F 07 E6 4F 07 E5 45 11 40 E7 40 C0 75 87 C9"
+else:
+    if len(sys.argv) < 3:
+        print("required arg: code")
+        sys.exit()
+    code = sys.argv[2]
+    ser = serial.Serial(serialPort, 9600)
 
 pygame.init()
 pygame.font.init()
@@ -270,7 +280,7 @@ pygame.event.set_allowed(None)
 pygame.event.set_allowed([pygame.QUIT, pygame.KEYDOWN])
 
 if test:
-    display(0, 0, (testR, testC, testD), 0)
+    display(0, 0, (testR, testC, testD), 2)
 else:
     th = threading.Thread(target=consoleThread)
     th.daemon = True
