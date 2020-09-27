@@ -67,6 +67,8 @@ def renderCounts(c):
             col = pygame.Color("dark green")
         elif n in [2, 3, 4, 5, 6, 7]:
             col = pygame.Color("dark blue")
+        elif n in [10]:
+            col = pygame.Color("orange 4")
         else:
             col = pygame.Color("dark red")
         pygame.draw.rect(screen, col, rect, 0)

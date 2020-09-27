@@ -13,7 +13,7 @@ If the serial connection was successful, a Pygame window will open, and after a 
 
 The line of text at the top of the Pygame window shows where you are in the history, and the short description of the result.
 
-The next section is a frequency plot of the voltages detected - the most common voltages should be in the green areas, with nothing in the red.
+The next section is a frequency plot of the voltages detected - the most common voltages should be in the green areas, with nothing in the red. The orange area is probably OK, depending on the USB voltage.
 
 The main section is the digital trace, of signal level against time, split across multiple rows. Each pixel horizontally on the image represents 200 microseconds. There are also some coloured dots to mark events:
 
