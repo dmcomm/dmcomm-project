@@ -146,13 +146,13 @@ def renderTrace(d, reporting=0):
                     #misc stages of send
                     col = pygame.Color("green")
                 elif level in [0xC5, 0xE5]:
-                    #bit 1
+                    #bit 0
                     col = pygame.Color("white")
                 elif level in [0xC6, 0xE6]:
-                    #bit 0
+                    #bit 1
                     col = pygame.Color("yellow")
                 else:
-                    #?
+                    #unknown event
                     col = pygame.Color("red")
                 pygame.draw.line(screen, col, (x, y-2), (x, y-3))
             else:

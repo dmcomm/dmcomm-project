@@ -1,8 +1,8 @@
 # Oscilloscope module
 
-So long as everything is in good working order, the Arduino serial monitor is sufficient. However, the `dmscope.py` program gives some additional visual information which can help to investigate problems.
+These notes assume that you have already built the circuit and flashed the Arduino with `dmcomm.ino`. So long as everything is in good working order, the Arduino IDE serial monitor is sufficient. However, the `dmscope.py` program gives some additional visual information which can help to investigate problems.
 
-It requires Python, Pygame and pyserial (see below).
+It requires Python 3, Pygame and pyserial (see below).
 
 It takes two command-line arguments:
 
@@ -15,7 +15,14 @@ The line of text at the top of the Pygame window shows where you are in the hist
 
 The next section is a frequency plot of the voltages detected - the most common voltages should be in the green areas, with nothing in the red.
 
-The main section is the digital trace, of signal level against time, split across multiple rows. There are also some coloured dots to mark events.
+The main section is the digital trace, of signal level against time, split across multiple rows. Each pixel horizontally on the image represents 200 microseconds. There are also some coloured dots to mark events:
+
+* Cyan: non-bit stages of receiving
+* Magenta: receiving failed
+* Green: non-bit stages of sending
+* White: finished receiving bit 0; about to send bit 0 (this is inconsistent and may be changed soon)
+* Yellow: finished receiving bit 1; about to send bit 1 (ditto)
+* Red: unknown event
 
 ## Windows
 
