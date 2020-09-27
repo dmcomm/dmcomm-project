@@ -4,10 +4,10 @@ These notes assume that you have already built the circuit and flashed the Ardui
 
 It requires Python 3, Pygame and pyserial (see below).
 
-It takes two command-line arguments:
+The command-line arguments are as follows:
 
-* The name of the serial port (see below)
-* The dmcomm code, the same as would be used for a serial command (see `codes.txt` in the folder above).
+* The name of the serial port (see below). Or the path to a text file containing results data in the same format (see `test.txt`).
+* If the path provided is a serial port and not a file, a second argument is required with the dmcomm code, the same as would be used for a serial command (see `codes.txt` in the folder above).
 
 If the serial connection was successful, a Pygame window will open, and after a few seconds will start displaying results. Controls are as follows. (There may be an issue on some computers with presses of the arrow keys registering twice: if this occurs, then counter-intuitively, it can be prevented by pressing the key for longer.)
 

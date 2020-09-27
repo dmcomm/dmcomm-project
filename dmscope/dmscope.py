@@ -40,7 +40,7 @@ traceMargin = 6
 
 ########################################
 
-import sys, time, serial, pygame, threading, queue
+import os, sys, time, serial, pygame, threading, queue
 
 
 log_prefix_low   = 0b00000000
@@ -178,21 +178,21 @@ def display(cursor, curmax, data, reporting=0):
         print(c)
         print(d)
     
-    summary = r + "  (" + str(cursor+1) + "/" + str(curmax+1) + " "
-    if running:
-        summary += "running)"
-    else:
-        summary += "paused)"
+    summary = r + "  (" + str(cursor+1) + "/" + str(curmax+1) + " " + state + ")"
     screen.fill(pygame.Color("black"))
     t = font.render(summary, False, pygame.Color("white"))
     screen.blit(t, (0, 0))
     
+    if c is None:
+        c = "c:" + " ".join(["0001"] * 16)
+    if d is None:
+        d = "d:01"
     renderCounts(c)
     renderTrace(d, reporting)
     pygame.display.update()
 
 def pygameThread():
-    global running
+    global state
     cursor = -1
     results = []
     while True:
@@ -214,12 +214,14 @@ def pygameThread():
                         cursor = curmax
                 elif event.key == pygame.K_SPACE:
                     reporting = 1
-                elif event.key == pygame.K_p:
-                    running = False
-                elif event.key == pygame.K_r:
-                    running = True
-                if len(results) > 0:
-                    display(cursor, curmax, results[cursor], reporting)
+                elif event.key == pygame.K_p and state == "running":
+                    state = "paused"
+                elif event.key == pygame.K_r and state == "paused":
+                    state = "running"
+            if len(results) > 0:
+                display(cursor, curmax, results[cursor], reporting)
+            else:
+                display(-1, -1, ("please wait...", None, None), 0)
         curAtMax = (cursor == curmax)
         new = False
         while not resultQ.empty():
@@ -235,9 +237,11 @@ def pygameThread():
         time.sleep(0.25)
 
 def consoleThread():
-    time.sleep(2)
-    ser.write("d1\n".encode("ascii"))
-    ser.write((code + "\n").encode("ascii"))
+    if state != "file":
+        print("please wait...")
+        time.sleep(2)
+        ser.write("d1\n".encode("ascii"))
+        ser.write((code + "\n").encode("ascii"))
     r = None; c = None; d = None
     while 1:
         line = ser.readline().decode("ascii").rstrip()
@@ -257,7 +261,7 @@ def consoleThread():
                     print ("got d without c")
                 else:
                     d = line
-                    if running:
+                    if state != "paused":
                         resultQ.put((r, c, d), True)
                     else:
                         print("ignored")
@@ -266,33 +270,23 @@ def consoleThread():
                 print(line)
 
 resultQ = queue.Queue()
-test = False
-running = True
 
 print("\n***dmscope***")
 if len(sys.argv) < 2:
     print("required arg: serialPort")
     sys.exit()
-serialPort = sys.argv[1]
+filename = sys.argv[1]
 
-if serialPort == "testxt1":
-    #X1-0459-7009: computer trades Str-Max for PenX's meat
-    test = True
-    testR = "s:0459 r:0409 s:7009 r:C009"
-    testC = "c:08C0 0002 0001 0000 0000 0000 0001 0000 0120 0187 0000 0000 0000 0000 0000 0000"
-    testD = "d:40 E0 4F E1 27 84 E2 4A E3 08 E6 4F 07 E5 45 11 E5 45 11 E6 4F 07 E6 4F 07 E5 45 11 E6 4F 07 E5 45 11 E5 45 11 E5 45 11 E6 4F 07 E5 45 11 E5 45 11 E5 45 11 E5 45 11 E5 45 11 40 E7 40 C0 5F 00 C1 2F 84 40 C2 4A 00 C3 07 40 C4 4F 07 40 C6 45 12 40 C5 44 13 40 C5 4F 07 40 C6 45 12 40 C5 44 13 40 C5 44 12 40 C5 45 12 40 C5 44 13 40 C5 44 12 40 C5 4F 08 40 C6 44 13 40 C5 44 12 40 C5 45 12 40 C5 44 13 40 C5 44 10 40 C5 40 C8 40 E0 4F E1 27 84 E2 4A E3 08 E6 4F 07 E5 45 11 E5 45 11 E6 4F 07 E5 45 11 E5 45 11 E5 45 11 E5 45 11 E5 45 11 E5 45 11 E5 45 11 E5 45 11 E6 4F 07 E6 4F 07 E6 4F 07 E5 45 11 40 E7 40 C0 42 81 00 C1 2F 84 40 C2 4A 00 C3 07 40 C4 4F 07 40 C6 45 12 40 C5 45 12 40 C5 4F 07 40 C6 45 12 40 C5 44 13 40 C5 44 12 40 C5 45 12 40 C5 45 12 40 C5 44 13 40 C5 44 12 40 C5 45 12 40 C5 44 13 40 C5 44 12 40 C5 4F 08 40 C6 4F 05 40 C6 40 C8"
-elif serialPort == "testxt2":
-    #X2-0459-7009: computer trades Str-Max for PenX's meat
-    test = True
-    testR = "r:0409 s:0459 r:C009 s:7009 t"
-    testC = "c:08AA 0000 0000 0001 0000 0000 0000 0099 1B28 18B9 0000 0000 0000 0000 0000 0000"
-    testD = "d:40 C0 54 80 83 00 C1 27 84 40 C2 49 00 C3 07 40 C4 4F 08 40 C6 44 13 40 C5 44 12 40 C5 4F 08 40 C6 44 12 40 C5 45 12 40 C5 45 12 40 C5 44 13 40 C5 44 12 40 C5 45 12 40 C5 4F 07 40 C6 45 12 40 C5 45 12 40 C5 44 13 40 C5 44 12 40 C5 45 10 40 C5 40 C8 40 E0 4F E1 27 84 E2 4A E3 08 E6 4F 07 E5 45 11 E5 45 11 E6 4F 07 E6 4F 07 E5 45 11 E6 4F 07 E5 45 11 E5 45 11 E5 45 11 E6 4F 07 E5 45 11 E5 45 11 E5 45 11 E5 45 11 E5 45 11 40 E7 40 C0 6A 00 C1 20 84 40 C2 49 00 C3 07 40 C4 4F 08 40 C6 44 13 40 C5 44 12 40 C5 4F 08 40 C6 44 12 40 C5 45 12 40 C5 45 12 40 C5 44 13 40 C5 44 12 40 C5 45 12 40 C5 45 12 40 C5 44 12 40 C5 45 12 40 C5 45 12 40 C5 4F 07 40 C6 4F 05 40 C6 40 C8 40 E0 4F E1 27 84 E2 4A E3 08 E6 4F 07 E5 45 11 E5 45 11 E6 4F 07 E5 45 11 E5 45 11 E5 45 11 E5 45 11 E5 45 11 E5 45 11 E5 45 11 E5 45 11 E6 4F 07 E6 4F 07 E6 4F 07 E5 45 11 40 E7 40 C0 75 87 C9"
+if os.path.isfile(filename):
+    state = "file"
+    ser = open(filename, "rb")
 else:
+    state = "running"
     if len(sys.argv) < 3:
         print("required arg: code")
         sys.exit()
     code = sys.argv[2]
-    ser = serial.Serial(serialPort, 9600)
+    ser = serial.Serial(filename, 9600)
 
 pygame.init()
 pygame.font.init()
@@ -302,10 +296,7 @@ pygame.display.set_caption("dmscope")
 pygame.event.set_allowed(None)
 pygame.event.set_allowed([pygame.QUIT, pygame.KEYDOWN])
 
-if test:
-    display(0, 0, (testR, testC, testD), 2)
-else:
-    th = threading.Thread(target=consoleThread)
-    th.daemon = True
-    th.start()
+th = threading.Thread(target=consoleThread)
+th.daemon = True
+th.start()
 pygameThread()
