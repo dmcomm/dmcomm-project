@@ -9,7 +9,12 @@ It takes two command-line arguments:
 * The name of the serial port (see below)
 * The dmcomm code, the same as would be used for a serial command (see `codes.txt` in the folder above).
 
-If the serial connection was successful, a Pygame window will open, and after a few seconds will start displaying results. Use the left/right arrow keys to navigate the history of traces captured. Press space to print the full data for the current trace to the console. Press escape or click the close button to exit.
+If the serial connection was successful, a Pygame window will open, and after a few seconds will start displaying results. Controls are as follows. (There may be an issue on some computers with presses of the arrow keys registering twice: if this occurs, then counter-intuitively, it can be prevented by pressing the key for longer.)
+
+* Press the left/right arrow keys to navigate the history of traces captured
+* Press space to print the full data for the current trace to the console
+* Press P to pause data collection and R to resume it
+* Press escape or click the close button to exit.
 
 The line of text at the top of the Pygame window shows where you are in the history, and the short description of the result.
 

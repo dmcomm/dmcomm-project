@@ -178,9 +178,13 @@ def display(cursor, curmax, data, reporting=0):
         print(c)
         print(d)
     
-    cstr = str(cursor+1) + "/" + str(curmax+1) + " "
+    summary = r + "  (" + str(cursor+1) + "/" + str(curmax+1) + " "
+    if running:
+        summary += "running)"
+    else:
+        summary += "paused)"
     screen.fill(pygame.Color("black"))
-    t = font.render(cstr + r, False, pygame.Color("white"))
+    t = font.render(summary, False, pygame.Color("white"))
     screen.blit(t, (0, 0))
     
     renderCounts(c)
@@ -188,6 +192,7 @@ def display(cursor, curmax, data, reporting=0):
     pygame.display.update()
 
 def pygameThread():
+    global running
     cursor = -1
     results = []
     while True:
@@ -209,6 +214,10 @@ def pygameThread():
                         cursor = curmax
                 elif event.key == pygame.K_SPACE:
                     reporting = 1
+                elif event.key == pygame.K_p:
+                    running = False
+                elif event.key == pygame.K_r:
+                    running = True
                 if len(results) > 0:
                     display(cursor, curmax, results[cursor], reporting)
         curAtMax = (cursor == curmax)
@@ -229,24 +238,36 @@ def consoleThread():
     time.sleep(2)
     ser.write("d1\n".encode("ascii"))
     ser.write((code + "\n").encode("ascii"))
-    c = None
-    r = None
+    r = None; c = None; d = None
     while 1:
         line = ser.readline().decode("ascii").rstrip()
         if line != "":
-            if line.startswith("c:"):
-                c = line
-            elif line.startswith("d:"):
-                d = line
-                resultQ.put((r, c, d), True)
-            elif line.startswith("r:") or line.startswith("s:") or line == "t":
+            if line.startswith("r:") or line.startswith("s:") or line == "t":
                 r = line
                 print(line)
+            elif line.startswith("c:"):
+                if r is None:
+                    print("got c without r")
+                else:
+                    c = line
+            elif line.startswith("d:"):
+                if r is None:
+                    print("got d without r")
+                elif c is None:
+                    print ("got d without c")
+                else:
+                    d = line
+                    if running:
+                        resultQ.put((r, c, d), True)
+                    else:
+                        print("ignored")
+                    r = None; c = None; d = None
             else:
                 print(line)
 
 resultQ = queue.Queue()
 test = False
+running = True
 
 print("\n***dmscope***")
 if len(sys.argv) < 2:
