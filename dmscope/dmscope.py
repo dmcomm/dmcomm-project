@@ -234,7 +234,7 @@ def pygameThread():
                 cursor = curmax
             display(cursor, curmax, results[cursor], False)
         
-        time.sleep(0.25)
+        pygame.time.wait(25)
 
 def consoleThread():
     if state != "file":
