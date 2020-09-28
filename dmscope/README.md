@@ -14,7 +14,7 @@ If the serial connection was successful, a Pygame window will open, and after a 
 * Press the left/right arrow keys to navigate the history of traces captured
 * Press space to print the full data for the current trace to the console
 * Press P to pause data collection and R to resume it
-* Press escape or click the close button to exit.
+* Press Q or escape, or click the close button to exit.
 
 The line of text at the top of the Pygame window shows where you are in the history, and the short description of the result.
 

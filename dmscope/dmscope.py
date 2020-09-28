@@ -202,7 +202,7 @@ def pygameThread():
             if event.type == pygame.QUIT:
                 sys.exit()
             elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
+                if event.key == pygame.K_q or event.key == pygame.K_ESCAPE:
                     sys.exit()
                 elif event.key == pygame.K_LEFT:
                     cursor -= 1
