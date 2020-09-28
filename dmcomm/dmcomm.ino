@@ -144,6 +144,7 @@ void busDriveHigh() {
 
 void busRelease() {
     digitalWrite(dm_pin_notOE, HIGH);
+    digitalWrite(dm_pin_out, HIGH);
 }
 
 //add specified byte to the log
