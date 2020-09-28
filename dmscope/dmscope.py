@@ -207,11 +207,11 @@ def pygameThread():
                 elif event.key == pygame.K_LEFT:
                     cursor -= 1
                     if cursor < 0:
-                        cursor = 0
+                        cursor = curmax
                 elif event.key == pygame.K_RIGHT:
                     cursor += 1
                     if cursor > curmax:
-                        cursor = curmax
+                        cursor = 0
                 elif event.key == pygame.K_SPACE:
                     reporting = 1
                 elif event.key == pygame.K_p and state == "running":
