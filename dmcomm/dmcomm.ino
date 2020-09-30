@@ -1,7 +1,7 @@
 /*
   Project using Arduino to communicate with Digimon toys
 
-  Copyright (c) 2014,2017,2018 BladeSabre
+  Copyright (c) 2014,2017,2018,2020 BladeSabre
 
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -89,6 +89,7 @@ long ticksSame;
 unsigned int sensorCounts[sensor_levels];
 
 struct dm_times_t {
+    char timing_id;
     unsigned long pre_high, pre_low;
     unsigned long start_high, start_low, bit1_high, bit1_low, bit0_high, bit0_low, send_recovery;
     unsigned long bit1_high_min;
@@ -97,13 +98,25 @@ struct dm_times_t {
 
 
 //configure durations depending on whether we are using X timings or not
-void initDmTimes(boolean is_x) {
-    dm_times.pre_high = 3000;
-    dm_times.pre_low = 59000;
+void initDmTimes(char timingID) {
+    dm_times.timing_id = timingID;
     dm_times.timeout_reply = 100000;
     dm_times.timeout_bits = 200000; 
-    dm_times.timeout_bit = 5000;
-    if (is_x) {
+    if (timingID == 'V') {
+        dm_times.pre_high = 3000;
+        dm_times.pre_low = 59000;
+        dm_times.start_high = 2083;
+        dm_times.start_low = 917;
+        dm_times.bit1_high = 2667;
+        dm_times.bit1_low = 1667;
+        dm_times.bit0_high = 1000;
+        dm_times.bit0_low = 3167;
+        dm_times.send_recovery = 300;
+        dm_times.bit1_high_min = 1833;
+        dm_times.timeout_bit = 5000;
+    } else if (timingID == 'X') {
+        dm_times.pre_high = 3000;
+        dm_times.pre_low = 59000;
         dm_times.start_high = 2125;
         dm_times.start_low = 1625;
         dm_times.bit1_high = 3167;
@@ -112,15 +125,20 @@ void initDmTimes(boolean is_x) {
         dm_times.bit0_low = 3792;
         dm_times.send_recovery = 300;
         dm_times.bit1_high_min = 2125;
+        dm_times.timeout_bit = 5000;
     } else {
-        dm_times.start_high = 2083;
-        dm_times.start_low = 917;
-        dm_times.bit1_high = 2667; 
-        dm_times.bit1_low = 1667; 
-        dm_times.bit0_high = 1000; 
-        dm_times.bit0_low = 3167;
+        //assuming 'Y'
+        dm_times.pre_high = 5000;
+        dm_times.pre_low = 40000;
+        dm_times.start_high = 11000;
+        dm_times.start_low = 6000;
+        dm_times.bit1_high = 4000;
+        dm_times.bit1_low = 1600;
+        dm_times.bit0_high = 1400;
+        dm_times.bit0_low = 4400;
         dm_times.send_recovery = 300;
-        dm_times.bit1_high_min = 1833;
+        dm_times.bit1_high_min = 3000;
+        dm_times.timeout_bit = 20000;
     }
 }
 
@@ -249,7 +267,7 @@ void setup() {
     pinMode(dm_pin_notOE, OUTPUT);
     pinMode(dm_pin_Ain, INPUT);
     
-    initDmTimes(false);
+    initDmTimes('V');
 }
 
 
@@ -487,9 +505,9 @@ int makePacket(unsigned int * bitsNew, char * checksum, unsigned int bitsRcvd, b
 
 //just listen for sequences of incoming messages,
 //e.g. if only the first packet is wanted, or listening to 2 toys
-void commListen(boolean X) {
+void commListen(char timingID) {
     int result;
-    initDmTimes(X);
+    initDmTimes(timingID);
     result = rcvPacket(listen_timeout);
     ledOff();
     while (result == 0 || result >= 13) {
@@ -502,13 +520,13 @@ void commListen(boolean X) {
 }
 
 //interact with the toy on the other end of the connection
-void commBasic(boolean X, boolean goFirst, byte * buffer) {
+void commBasic(char timingID, boolean goFirst, byte * buffer) {
     unsigned int bitsRcvd = 0;
     unsigned int bitsToSend = 0;
     char checksum = 0;
     int bufCur = 2;
     int result;
-    initDmTimes(X);
+    initDmTimes(timingID);
     if (goFirst) {
         delay(gofirst_repeat_ms);
         //delayByTicks((long)gofirst_repeat_ms * 1000);
@@ -617,7 +635,7 @@ char serialRead(byte * buffer) {
 void loop() {
     static boolean active = false;
     static boolean debug = false;
-    static boolean X;
+    static char timingID;
     static boolean listenOnly;
     static boolean goFirst;
     static byte numPackets;
@@ -648,12 +666,15 @@ void loop() {
         }
         // start changing stuff
         active = true;
-        if (buffer[0] == 'x' || buffer[0] == 'X') {
-            X = true;
-            Serial.print("X");
-        } else if (buffer[0] == 'v' || buffer[0] == 'V') {
-            X = false;
+        if (buffer[0] == 'v' || buffer[0] == 'V') {
+            timingID = 'V';
             Serial.print("V");
+        } else if (buffer[0] == 'x' || buffer[0] == 'X') {
+            timingID = 'X';
+            Serial.print("X");
+        } else if (buffer[0] == 'y' || buffer[0] == 'Y') {
+            timingID = 'Y';
+            Serial.print("Y");
         } else {
             active = false;
         }
@@ -701,9 +722,9 @@ void loop() {
     if (active) {
         startLog();
         if (listenOnly) {
-            commListen(X);
+            commListen(timingID);
         } else {
-            commBasic(X, goFirst, buffer);
+            commBasic(timingID, goFirst, buffer);
         }
         if (debug) {
             Serial.print("c:");
@@ -723,4 +744,3 @@ void loop() {
         delay(inactive_delay_ms);
     }
 }
-
