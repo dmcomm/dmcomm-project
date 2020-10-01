@@ -42,7 +42,7 @@ const unsigned long listen_timeout = 3000000;
 
 const unsigned int gofirst_repeat_ms = 5000;
 const unsigned int serial_timeout_ms = 6000;
-const unsigned int inactive_delay_ms = 1000;
+const unsigned int inactive_delay_ms = 250;
 const unsigned int ended_capture_ms = 500;
 
 
@@ -84,12 +84,13 @@ const byte log_self_release = 0xE7;
 
 byte logBuf[log_length];
 int logIndex;
-boolean prevSensorLevel;
+byte prevSensorLevel;
 long ticksSame;
 unsigned int sensorCounts[sensor_levels];
 
 struct dm_times_t {
     char timing_id;
+    byte logic_high, logic_low;
     unsigned long pre_high, pre_low;
     unsigned long start_high, start_low, bit1_high, bit1_low, bit0_high, bit0_low, send_recovery;
     unsigned long bit1_high_min;
@@ -103,6 +104,8 @@ void initDmTimes(char timingID) {
     dm_times.timeout_reply = 100000;
     dm_times.timeout_bits = 200000; 
     if (timingID == 'V') {
+        dm_times.logic_high = HIGH;
+        dm_times.logic_low = LOW;
         dm_times.pre_high = 3000;
         dm_times.pre_low = 59000;
         dm_times.start_high = 2083;
@@ -115,6 +118,8 @@ void initDmTimes(char timingID) {
         dm_times.bit1_high_min = 1833;
         dm_times.timeout_bit = 5000;
     } else if (timingID == 'X') {
+        dm_times.logic_high = HIGH;
+        dm_times.logic_low = LOW;
         dm_times.pre_high = 3000;
         dm_times.pre_low = 59000;
         dm_times.start_high = 2125;
@@ -128,6 +133,8 @@ void initDmTimes(char timingID) {
         dm_times.timeout_bit = 5000;
     } else {
         //assuming 'Y'
+        dm_times.logic_high = LOW;
+        dm_times.logic_low = HIGH;
         dm_times.pre_high = 5000;
         dm_times.pre_low = 40000;
         dm_times.start_high = 11000;
@@ -151,18 +158,20 @@ void ledOff() {
 }
 
 void busDriveLow() {
-    digitalWrite(dm_pin_out, LOW);
+    digitalWrite(dm_pin_out, dm_times.logic_low);
     digitalWrite(dm_pin_notOE, LOW);
 }
 
 void busDriveHigh() {
-    digitalWrite(dm_pin_out, HIGH);
+    digitalWrite(dm_pin_out, dm_times.logic_high);
     digitalWrite(dm_pin_notOE, LOW);
 }
 
 void busRelease() {
     digitalWrite(dm_pin_notOE, HIGH);
-    digitalWrite(dm_pin_out, HIGH);
+    digitalWrite(dm_pin_out, dm_times.logic_high);
+    //dm_pin_out is "don't care" on the original 3-state circuit design,
+    //but there is an alternative 2-state design which this applies to
 }
 
 //add specified byte to the log
@@ -173,7 +182,7 @@ void addLogByte(byte b) {
     }
 }
 
-//add current logic level and time to the log (may be multiple bytes)
+//add current digital sensor level and time to the log (may be multiple bytes)
 //and initialize next timing
 void addLogTime() {
     byte log_prefix = (prevSensorLevel == LOW) ? log_prefix_low : log_prefix_high;
@@ -193,13 +202,13 @@ void addLogEvent(byte b) {
 
 //read analog input and do logging, clocked by tick_length;
 //return current logic level measured
-boolean doTick() {
+byte doTick() {
     static unsigned long prev_micros = 0;
     static int ticks = 0;
     
     unsigned int sensorValue;
     int sensorCat;
-    boolean sensorLevel;
+    byte sensorLevel;
     
     sensorValue = analogRead(dm_pin_Ain);
     
@@ -232,7 +241,11 @@ boolean doTick() {
         ticksSame ++;
     }
     prevSensorLevel = sensorLevel;
-    return sensorLevel;
+    if (sensorLevel == HIGH) {
+        return dm_times.logic_high;
+    } else {
+        return dm_times.logic_low;
+    }
 }
 
 //initialize logging for a new run
@@ -275,20 +288,20 @@ void setup() {
 
 //wait until measured input equals level, or timeout microseconds;
 //return time taken in microseconds
-unsigned long busWaitTime(boolean level, unsigned long timeout) {
+unsigned long busWaitTime(byte level, unsigned long timeout) {
     unsigned long timeStart = micros();
     unsigned long time;
-    boolean sensorLevel;
+    byte logicLevel;
     do {
-        sensorLevel = doTick();
+        logicLevel = doTick();
         time = micros() - timeStart;
-    } while (sensorLevel != level && time <= timeout);
+    } while (logicLevel != level && time <= timeout);
     return time;
 }
 
 //wait until measured input equals level, or timeout microseconds;
 //return true if timeout was reached, false otherwise
-boolean busWait(boolean level, unsigned long timeout) {
+boolean busWait(byte level, unsigned long timeout) {
     unsigned long time = busWaitTime(level, timeout);
     return (time > timeout);
 }
@@ -719,8 +732,8 @@ void loop() {
     }
     
     //do it
-    if (active) {
-        startLog();
+    startLog();
+    if (active && doTick() == HIGH) {
         if (listenOnly) {
             commListen(timingID);
         } else {
