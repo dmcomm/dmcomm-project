@@ -91,6 +91,7 @@ unsigned int sensorCounts[sensor_levels];
 struct dm_times_t {
     char timing_id;
     byte logic_high, logic_low;
+    boolean invert_bit_read;
     unsigned long pre_high, pre_low;
     unsigned long start_high, start_low, bit1_high, bit1_low, bit0_high, bit0_low, send_recovery;
     unsigned long bit1_high_min;
@@ -106,6 +107,7 @@ void initDmTimes(char timingID) {
     if (timingID == 'V') {
         dm_times.logic_high = HIGH;
         dm_times.logic_low = LOW;
+        dm_times.invert_bit_read = false;
         dm_times.pre_high = 3000;
         dm_times.pre_low = 59000;
         dm_times.start_high = 2083;
@@ -120,6 +122,7 @@ void initDmTimes(char timingID) {
     } else if (timingID == 'X') {
         dm_times.logic_high = HIGH;
         dm_times.logic_low = LOW;
+        dm_times.invert_bit_read = false;
         dm_times.pre_high = 3000;
         dm_times.pre_low = 59000;
         dm_times.start_high = 2125;
@@ -135,14 +138,15 @@ void initDmTimes(char timingID) {
         //assuming 'Y'
         dm_times.logic_high = LOW;
         dm_times.logic_low = HIGH;
+        dm_times.invert_bit_read = true;
         dm_times.pre_high = 5000;
         dm_times.pre_low = 40000;
         dm_times.start_high = 11000;
         dm_times.start_low = 6000;
-        dm_times.bit1_high = 4000;
-        dm_times.bit1_low = 1600;
-        dm_times.bit0_high = 1400;
-        dm_times.bit0_low = 4400;
+        dm_times.bit1_high = 1400;
+        dm_times.bit1_low = 4400;
+        dm_times.bit0_high = 4000;
+        dm_times.bit0_low = 1600;
         dm_times.send_recovery = 300;
         dm_times.bit1_high_min = 3000;
         dm_times.timeout_bit = 20000;
@@ -318,6 +322,9 @@ boolean rcvBit(unsigned int * bits) {
     }
     if (time > dm_times.bit1_high_min) {
         bit0 = true;
+    }
+    if (dm_times.invert_bit_read) {
+        bit0 = !bit0;
     }
     if (busWait(HIGH, timeout)) {
         return true;
