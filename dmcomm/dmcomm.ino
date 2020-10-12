@@ -29,7 +29,7 @@ const byte probe_pin = 2;
 
 //analog conversion parameters
 
-const int sensor_threshold = 0x180; //should be multiple of (1 << sensor_shift)
+//sensor_threshold has moved to dm_times
 //want sensor_levels << sensor_shift == 1024 (for ADC)
 const byte sensor_levels = 16;
 const byte sensor_shift = 6;
@@ -92,6 +92,7 @@ struct dm_times_t {
     char timing_id;
     byte logic_high, logic_low;
     boolean invert_bit_read;
+    int sensor_threshold;
     unsigned long pre_high, pre_low;
     unsigned long start_high, start_low, bit1_high, bit1_low, bit0_high, bit0_low, send_recovery;
     unsigned long bit1_high_min;
@@ -150,6 +151,13 @@ void initDmTimes(char timingID) {
         dm_times.send_recovery = 300;
         dm_times.bit1_high_min = 3000;
         dm_times.timeout_bit = 20000;
+    }
+    //sensor_threshold should be a multiple of (1 << sensor_shift)
+    //keeping this logic separate because it's likely to grow
+    if (timingID == 'Y') {
+        dm_times.sensor_threshold = 0x100; //1.3V approx
+    } else {
+        dm_times.sensor_threshold = 0x180; //1.9V approx
     }
 }
 
@@ -231,7 +239,7 @@ byte doTick() {
         digitalWrite(probe_pin, HIGH);
     }
     
-    if (sensorValue >= sensor_threshold) {
+    if (sensorValue >= dm_times.sensor_threshold) {
         sensorLevel = HIGH;
     } else {
         sensorLevel = LOW;
