@@ -525,9 +525,8 @@ int makePacket(unsigned int * bitsNew, char * checksum, unsigned int bitsRcvd, b
 
 //just listen for sequences of incoming messages,
 //e.g. if only the first packet is wanted, or listening to 2 toys
-void commListen(char timingID) {
+void commListen() {
     int result;
-    initDmTimes(timingID);
     result = rcvPacket(listen_timeout);
     ledOff();
     while (result == 0 || result >= 13) {
@@ -540,13 +539,12 @@ void commListen(char timingID) {
 }
 
 //interact with the toy on the other end of the connection
-void commBasic(char timingID, boolean goFirst, byte * buffer) {
+void commBasic(boolean goFirst, byte * buffer) {
     unsigned int bitsRcvd = 0;
     unsigned int bitsToSend = 0;
     char checksum = 0;
     int bufCur = 2;
     int result;
-    initDmTimes(timingID);
     if (goFirst) {
         delay(gofirst_repeat_ms);
         //delayByTicks((long)gofirst_repeat_ms * 1000);
@@ -696,6 +694,7 @@ void loop() {
             timingID = 'Y';
             Serial.print("Y");
         } else {
+            timingID = 'V';
             active = false;
         }
         if (i < 2 || (i < 5 && buffer[1] != '0')) {
@@ -740,11 +739,13 @@ void loop() {
     
     //do it
     startLog();
+    initDmTimes(timingID);
+    busRelease();
     if (active && doTick() == HIGH) {
         if (listenOnly) {
-            commListen(timingID);
+            commListen();
         } else {
-            commBasic(timingID, goFirst, buffer);
+            commBasic(goFirst, buffer);
         }
         if (debug) {
             Serial.print("c:");
