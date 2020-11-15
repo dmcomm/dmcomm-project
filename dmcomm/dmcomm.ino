@@ -117,7 +117,7 @@ void initDmTimes(char timingID) {
         dm_times.bit1_low = 1667;
         dm_times.bit0_high = 1000;
         dm_times.bit0_low = 3167;
-        dm_times.send_recovery = 300;
+        dm_times.send_recovery = 400;
         dm_times.bit1_high_min = 1833;
         dm_times.timeout_bit = 5000;
     } else if (timingID == 'X') {
@@ -125,16 +125,16 @@ void initDmTimes(char timingID) {
         dm_times.logic_low = LOW;
         dm_times.invert_bit_read = false;
         dm_times.pre_high = 3000;
-        dm_times.pre_low = 59000;
-        dm_times.start_high = 2125;
-        dm_times.start_low = 1625;
-        dm_times.bit1_high = 3167;
-        dm_times.bit1_low = 1708; 
-        dm_times.bit0_high = 1083;
-        dm_times.bit0_low = 3792;
-        dm_times.send_recovery = 300;
-        dm_times.bit1_high_min = 2125;
-        dm_times.timeout_bit = 5000;
+        dm_times.pre_low = 60000;
+        dm_times.start_high = 2200;
+        dm_times.start_low = 1600;
+        dm_times.bit1_high = 4000;
+        dm_times.bit1_low = 1600;
+        dm_times.bit0_high = 1600;
+        dm_times.bit0_low = 4000;
+        dm_times.send_recovery = 400;
+        dm_times.bit1_high_min = 2600;
+        dm_times.timeout_bit = 7000;
     } else {
         //assuming 'Y'
         dm_times.logic_high = LOW;
@@ -148,7 +148,7 @@ void initDmTimes(char timingID) {
         dm_times.bit1_low = 4400;
         dm_times.bit0_high = 4000;
         dm_times.bit0_low = 1600;
-        dm_times.send_recovery = 300;
+        dm_times.send_recovery = 200;
         dm_times.bit1_high_min = 3000;
         dm_times.timeout_bit = 20000;
     }
