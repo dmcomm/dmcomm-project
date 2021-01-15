@@ -101,7 +101,8 @@ def renderTrace(d, reporting=0):
             shift += log_count_bits
             prevCount |= (item & log_max_count) << shift
         else:
-            counts.append((prevLevel, prevCount))
+            if prevLevel is not None:
+                counts.append((prevLevel, prevCount))
             prevCount = None
             prevLevel = None
             counts.append((item, None))
