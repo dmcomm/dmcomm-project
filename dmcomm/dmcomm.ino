@@ -682,15 +682,13 @@ void loop() {
         Serial.print(" -> ");
         if ((buffer[0] == 'd' || buffer[0] == 'D') && i >= 2) {
             if (buffer[1] == '0') {
-                Serial.println("debug off");
+                Serial.print("debug off ");
                 debug = false;
             } else {
-                Serial.println("debug on");
+                Serial.print("debug on ");
                 debug = true;
             }
-            return;
         }
-        // start changing stuff
         active = true;
         if (buffer[0] == 'v' || buffer[0] == 'V') {
             timingID = 'V';
@@ -740,7 +738,7 @@ void loop() {
             Serial.print(" packets]");
         }
         if (!active) {
-            Serial.print("N");
+            Serial.print("(paused)");
         }
         Serial.println();
     }
