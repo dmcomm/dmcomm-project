@@ -186,6 +186,45 @@ void busRelease() {
     //but there is an alternative 2-state design which this applies to
 }
 
+void startupTestVoltageRange() {
+    unsigned int sensorValue;
+    float sensorValueF, Vmin, Vmax;
+    sensorValue = analogRead(dm_pin_Ain);
+    sensorValueF = sensorValue;
+    Vmin = sensorValueF * 4.75 / 1024.0;
+    Vmax = sensorValueF * 5.25 / 1024.0;
+    Serial.print(Vmin, 1);
+    Serial.print('-');
+    Serial.print(Vmax, 1);
+    Serial.print('V');
+    if (Vmin > 2.85) { //reading 3V with a 5V supply
+        Serial.print(F(" WARNING"));
+    }
+}
+
+void startupTest() {
+    unsigned int sensorValue;
+    //DCom/ACom detection first
+    digitalWrite(dm_pin_notOE, HIGH);
+    digitalWrite(dm_pin_out, LOW);
+    delay(5);
+    sensorValue = analogRead(dm_pin_Ain);
+    if (sensorValue > 0xC0) { //1.0V approx
+        Serial.print(F("DCom likely. Listening voltage: "));
+        digitalWrite(dm_pin_out, HIGH);
+        delay(100);
+        startupTestVoltageRange();
+    } else {
+        Serial.print(F("ACom likely"));
+    }
+    Serial.print(F(". Logic high voltage: "));
+    digitalWrite(dm_pin_notOE, LOW);
+    digitalWrite(dm_pin_out, HIGH);
+    delay(100);
+    startupTestVoltageRange();
+    Serial.println('.');
+}
+
 //add specified byte to the log
 void addLogByte(byte b) {
     if (logIndex < log_length) {
@@ -661,6 +700,7 @@ char serialRead(byte * buffer) {
 void loop() {
     static boolean active = false;
     static boolean debug = false;
+    static boolean doneStartupTest = false;
     static char timingID;
     static boolean listenOnly;
     static boolean goFirst;
@@ -673,6 +713,10 @@ void loop() {
     //process serial input
     i = serialRead(buffer);
     if (i > 0) {
+        if (!doneStartupTest) {
+            startupTest();
+            doneStartupTest = true;
+        }
         Serial.print(F("got "));
         Serial.print(i, DEC);
         Serial.print(F(" bytes: "));
