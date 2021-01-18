@@ -48,7 +48,7 @@ const unsigned int ended_capture_ms = 500;
 
 //buffer sizes
 
-const byte serial_buffer_size = 80;
+const byte command_buffer_size = 64; //no point having it bigger than system serial buffer
 const int log_length = 1000;
 
 
@@ -359,42 +359,42 @@ int rcvPacketGet(unsigned int * bits, unsigned long timeout1) {
     addLogEvent(log_opp_enter_wait);
     if (busWait(LOW, timeout1)) {
         addLogEvent(log_opp_exit_fail);
-        Serial.write("t ");
+        Serial.print(F("t "));
         return -4;
     }
     addLogEvent(log_opp_init_pulldown);
     if (busWait(HIGH, dm_times.timeout_bits)) {
         addLogEvent(log_opp_exit_fail);
-        Serial.write("t:-3 ");
+        Serial.print(F("t:-3 "));
         return -3;
     }
     addLogEvent(log_opp_start_bit_high);
     if (busWait(LOW, dm_times.timeout_bit)) {
         addLogEvent(log_opp_exit_fail);
-        Serial.write("t:-2 ");
+        Serial.print(F("t:-2 "));
         return -2;
     }
     addLogEvent(log_opp_start_bit_low);
     if (busWait(HIGH, dm_times.timeout_bit)) {
         addLogEvent(log_opp_exit_fail);
-        Serial.write("t:-1 ");
+        Serial.print(F("t:-1 "));
         return -1;
     }
     addLogEvent(log_opp_bits_begin_high);
     for (i = 0; i < 16; i ++) {
         if (rcvBit(bits)) {
-            Serial.write("t:");
+            Serial.print(F("t:"));
             Serial.print(i, DEC);
-            Serial.write(':');
+            Serial.print(':');
             serialPrintHex((*bits) >> (16-i), 4);
-            Serial.write(' ');
+            Serial.print(' ');
             addLogEvent(log_opp_exit_fail);
             return i+1;
         }
     }
-    Serial.write("r:");
+    Serial.print(F("r:"));
     serialPrintHex(*bits, 4);
-    Serial.write(' ');
+    Serial.print(' ');
     addLogEvent(log_opp_exit_ok);
     return 0;
 }
@@ -425,9 +425,9 @@ void sendBit(unsigned int bit) {
 //send a 16-bit packet
 void sendPacket(unsigned int bits) {
     byte i;
-    Serial.write("s:");
+    Serial.print(F("s:"));
     serialPrintHex(bits, 4);
-    Serial.write(' ');
+    Serial.print(' ');
     addLogEvent(log_self_enter_delay);
     delayByTicks(dm_times.pre_high);
     
@@ -571,7 +571,7 @@ void commBasic(boolean goFirst, byte * buffer) {
         }
         if (result == -1) {
             //makePacket error
-            Serial.write("s:?");
+            Serial.print(F("s:?"));
             break;
         }
         bufCur += result;
@@ -638,7 +638,7 @@ char serialRead(byte * buffer) {
             incomingInt = Serial.read();
             time = millis() - timeStart;
             if (time > serial_timeout_ms) {
-                Serial.println("too late");
+                Serial.println(F("too late"));
                 return 0;
             }
         } while (incomingInt == -1);
@@ -647,9 +647,9 @@ char serialRead(byte * buffer) {
             buffer[i] = incomingByte;
             i += 1;
         }
-    } while (incomingByte != '\r' && incomingByte != '\n' && i < serial_buffer_size - 1);
+    } while (incomingByte != '\r' && incomingByte != '\n' && i < command_buffer_size - 1);
     if (incomingByte != '\r' && incomingByte != '\n') {
-        Serial.println("too long");
+        Serial.println(F("too long"));
         return 0;
     }
     buffer[i] = '\0';
@@ -665,40 +665,38 @@ void loop() {
     static boolean listenOnly;
     static boolean goFirst;
     static byte numPackets;
-    static byte buffer[serial_buffer_size];
+    static byte buffer[command_buffer_size];
 
-    int i, j;
+    int i;
     byte bufCursor;
 
     //process serial input
     i = serialRead(buffer);
     if (i > 0) {
-        Serial.print("got ");
+        Serial.print(F("got "));
         Serial.print(i, DEC);
-        Serial.print(" bytes: ");
-        for (j = 0; j < i; j ++) {
-            Serial.write(buffer[j]);
-        }
-        Serial.print(" -> ");
+        Serial.print(F(" bytes: "));
+        Serial.write(buffer, i);
+        Serial.print(F(" -> "));
         if ((buffer[0] == 'd' || buffer[0] == 'D') && i >= 2) {
             if (buffer[1] == '0') {
-                Serial.print("debug off ");
+                Serial.print(F("debug off "));
                 debug = false;
             } else {
-                Serial.print("debug on ");
+                Serial.print(F("debug on "));
                 debug = true;
             }
         }
         active = true;
         if (buffer[0] == 'v' || buffer[0] == 'V') {
             timingID = 'V';
-            Serial.print("V");
+            Serial.print('V');
         } else if (buffer[0] == 'x' || buffer[0] == 'X') {
             timingID = 'X';
-            Serial.print("X");
+            Serial.print('X');
         } else if (buffer[0] == 'y' || buffer[0] == 'Y') {
             timingID = 'Y';
-            Serial.print("Y");
+            Serial.print('Y');
         } else {
             timingID = 'V';
             active = false;
@@ -709,18 +707,18 @@ void loop() {
         if (active) {
             if (buffer[1] == '0') {
                 listenOnly = true;
-                Serial.print("0");
+                Serial.print('0');
             } else if (buffer[1] == '1') {
                 listenOnly = false;
                 goFirst = true;
-                Serial.print("1");
+                Serial.print('1');
             } else if (buffer[1] == '2') {
                 listenOnly = false;
                 goFirst = false;
-                Serial.print("2");
+                Serial.print('2');
             } else {
                 active = false;
-                Serial.print("?");
+                Serial.print('?');
             }
         }
         if (i < 7 && !listenOnly) {
@@ -733,12 +731,12 @@ void loop() {
                     numPackets ++;
                 }
             }
-            Serial.print("-[");
+            Serial.print(F("-["));
             Serial.print(numPackets);
-            Serial.print(" packets]");
+            Serial.print(F(" packets]"));
         }
         if (!active) {
-            Serial.print("(paused)");
+            Serial.print(F("(paused)"));
         }
         Serial.println();
     }
@@ -754,16 +752,16 @@ void loop() {
             commBasic(goFirst, buffer);
         }
         if (debug) {
-            Serial.print("c:");
+            Serial.print(F("c:"));
             for (i = 0; i < sensor_levels; i++) {
                 serialPrintHex(sensorCounts[i], 4);
-                Serial.print(" ");
+                Serial.print(' ');
             }
             Serial.println();
-            Serial.print("d:");
+            Serial.print(F("d:"));
             for (i = 0; i < logIndex; i ++) {
                 serialPrintHex(logBuf[i], 2);
-                Serial.print(" ");
+                Serial.print(' ');
             }
             Serial.println();
         }
