@@ -237,6 +237,9 @@ void addLogByte(byte b) {
 //and initialize next timing
 void addLogTime() {
     byte log_prefix = (prevSensorLevel == LOW) ? log_prefix_low : log_prefix_high;
+    if (ticksSame == 0) {
+        return;
+    }
     addLogByte((ticksSame & log_max_count) | log_prefix);
     ticksSame >>= log_count_bits;
     while (ticksSame > 0) {
@@ -286,8 +289,9 @@ byte doTick() {
     sensorCat = (sensorValue >> sensor_shift) % sensor_levels;
     sensorCounts[sensorCat] += 1;
     
-    if (ticksSame != 0 && sensorLevel != prevSensorLevel) {
+    if (sensorLevel != prevSensorLevel) {
         addLogTime();
+        ticksSame = 1;
     } else {
         ticksSame ++;
     }
