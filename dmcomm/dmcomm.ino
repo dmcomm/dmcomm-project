@@ -79,6 +79,8 @@ const byte log_self_send_bit_0 = 0xE5;
 const byte log_self_send_bit_1 = 0xE6;
 const byte log_self_release = 0xE7;
 
+const byte log_tick_overrun = 0xF0;
+
 
 //globals
 
@@ -266,9 +268,9 @@ byte doTick() {
     
     sensorValue = analogRead(dm_pin_Ain);
     
-    if (micros() - prev_micros > 2*tick_length) {
-        delayMicroseconds(tick_length);
-        prev_micros = micros(); //resync the clock
+    if (micros() - prev_micros > tick_length) {
+        addLogEvent(log_tick_overrun);
+        prev_micros = micros();
     } else {
         while(micros() - prev_micros < tick_length);
         prev_micros += tick_length;
