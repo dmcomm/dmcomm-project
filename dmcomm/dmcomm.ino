@@ -648,19 +648,32 @@ char hex2val(char hexdigit) {
     return value;
 }
 
-//print number onto serial as hex, with specified number of digits
-//(if too few digits, will take least significant)
-void serialPrintHex(unsigned int number, char digits) {
-    char digit;
-    char pow;
-    unsigned int mul = 1;
-    for (pow = 1; pow < digits; pow ++) {
-        mul *= 16;
+//return hex digit character for lowest 4 bits of input byte
+char val2hex(byte value) {
+    value &= 0xF;
+    if (value > 9) {
+        return value + 0x37;
+    } else {
+        return value + 0x30;
     }
-    while (mul > 0) {
-        digit = (number / mul) % 16;
-        Serial.print(digit, HEX);
-        mul /= 16;
+}
+
+//print number onto serial as hex,
+//with specified number of digits up to 4 (with leading zeros);
+//if too few digits to display that number, will take the least significant
+void serialPrintHex(unsigned int number, byte numDigits) {
+    const byte maxDigits = 4;
+    char i;
+    char digits[maxDigits];
+    if (numDigits > maxDigits) {
+        numDigits = maxDigits;
+    }
+    for (i = 0; i < numDigits; i ++) {
+        digits[i] = val2hex((byte)number);
+        number /= 0x10;
+    }
+    for (i = numDigits - 1; i >= 0; i --) {
+        Serial.write(digits[i]);
     }
 }
 
