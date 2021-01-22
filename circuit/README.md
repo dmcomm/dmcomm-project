@@ -5,7 +5,7 @@
 
 The connection to the toy has 2 lines, signal and GND. On 2-prong devices, the prong nearest the screen is for the signal ("Ain" on the circuit diagram) and the back prong is GND. On 3-prong devices, the central prong is for the signal and the outer two prongs are GND.
 
-Any suitable circuit should drop the voltage below 3V for the connection to the toy. Check this before using it! Also, be sure the polarity is correct. Mistakes here are the most likely to break something.
+Any suitable circuit should drop the voltage below 3V for the connection to the toy. Check this before using it! Also, be sure the polarity is correct. Mistakes here are the most likely to break something. If the circuit is wired correctly, the voltage test in the sketch can provide information about the voltages at the output. However, using a separate voltmeter is recommended.
 
 This project was originally designed for Arduino Uno, but the (smaller and cheaper) CH340 Nano has since become popular.
 
