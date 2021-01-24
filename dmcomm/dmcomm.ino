@@ -284,7 +284,7 @@ void addLogEvent(byte b) {
 
 //read analog input and do logging, clocked by tick_length;
 //return current logic level measured
-byte doTick() {
+byte doTick(boolean first=false) {
     static unsigned long prev_micros = 0;
     static int ticks = 0;
     
@@ -295,7 +295,9 @@ byte doTick() {
     sensorValue = analogRead(dm_pin_Ain);
     
     if (micros() - prev_micros > tick_length) {
-        addLogEvent(log_tick_overrun);
+        if (!first) {
+            addLogEvent(log_tick_overrun);
+        }
         prev_micros = micros();
     } else {
         while(micros() - prev_micros < tick_length);
@@ -624,10 +626,7 @@ void commBasic(boolean goFirst, byte * buffer) {
     char checksum = 0;
     int bufCur = 2;
     int result;
-    if (goFirst) {
-        delay(gofirst_repeat_ms);
-        //delayByTicks((long)gofirst_repeat_ms * 1000);
-    } else {
+    if (!goFirst) {
         if (rcvPacketGet(&bitsRcvd, listen_timeout)) {
             Serial.println();
             return;
@@ -795,6 +794,7 @@ void loop() {
         if (active) {
             if (buffer[1] == '0') {
                 listenOnly = true;
+                goFirst = false;
                 Serial.print('0');
             } else if (buffer[1] == '1') {
                 listenOnly = false;
@@ -833,7 +833,7 @@ void loop() {
     startLog();
     initDmTimes(timingID);
     busRelease();
-    if (active && doTick() == HIGH) {
+    if (active && doTick(true) == HIGH) {
         if (listenOnly) {
             commListen();
         } else {
@@ -852,6 +852,9 @@ void loop() {
                 Serial.print(' ');
             }
             Serial.println();
+        }
+        if (goFirst) {
+            delay(gofirst_repeat_ms);
         }
     } else {
         delay(inactive_delay_ms);
