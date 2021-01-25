@@ -184,11 +184,10 @@ def display(cursor, curmax, data, reporting=0):
     t = font.render(summary, False, pygame.Color("white"))
     screen.blit(t, (0, 0))
     
-    if c is None:
-        c = "c:" + " ".join(["0001"] * 16)
+    if c is not None:
+        renderCounts(c)
     if d is None:
         d = "d:01"
-    renderCounts(c)
     renderTrace(d, reporting)
     pygame.display.update()
 
@@ -258,8 +257,6 @@ def consoleThread():
             elif line.startswith("d:"):
                 if r is None:
                     print("got d without r")
-                elif c is None:
-                    print ("got d without c")
                 else:
                     d = line
                     if state != "paused":

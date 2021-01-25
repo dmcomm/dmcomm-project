@@ -88,7 +88,6 @@ byte logBuf[log_length];
 int logIndex;
 byte prevSensorLevel;
 long ticksSame;
-unsigned int sensorCounts[sensor_levels];
 enum circuitTypes {dcom, acom} circuitType;
 unsigned int listeningSensorValue;
 
@@ -289,7 +288,6 @@ byte doTick(boolean first=false) {
     static int ticks = 0;
     
     unsigned int sensorValue;
-    int sensorCat;
     byte sensorLevel;
     byte ticksMissed = 0;
     
@@ -326,8 +324,6 @@ byte doTick(boolean first=false) {
     } else {
         sensorLevel = LOW;
     }
-    sensorCat = (sensorValue >> sensor_shift) % sensor_levels;
-    sensorCounts[sensorCat] += 1;
     
     if (sensorLevel != prevSensorLevel) {
         addLogTime();
@@ -345,10 +341,6 @@ byte doTick(boolean first=false) {
 
 //initialize logging for a new run
 void startLog() {
-    int i;
-    for (i = 0; i < sensor_levels; i ++) {
-        sensorCounts[i] = 0;
-    }
     logIndex = 0;
     ticksSame = 0;
 }
@@ -850,12 +842,6 @@ void loop() {
             commBasic(goFirst, buffer);
         }
         if (debug) {
-            Serial.print(F("c:"));
-            for (i = 0; i < sensor_levels; i++) {
-                serialPrintHex(sensorCounts[i], 4);
-                Serial.print(' ');
-            }
-            Serial.println();
             Serial.print(F("d:"));
             for (i = 0; i < logIndex; i ++) {
                 serialPrintHex(logBuf[i], 2);
