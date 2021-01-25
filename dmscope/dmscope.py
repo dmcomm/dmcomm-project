@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-#  Copyright (c) 2014,2020 BladeSabre
+#  Copyright (c) 2014,2020,2021 BladeSabre
 #
 #  Redistribution and use in source and binary forms, with or without
 #  modification, are permitted provided that the following conditions are
@@ -35,7 +35,8 @@ countsColW = 10
 countsRowH = 20
 
 traceY = 70
-traceRowH = 12
+traceRowH_D = 12
+traceRowH_A = 32
 traceMargin = 6
 
 ########################################
@@ -79,7 +80,7 @@ def renderCounts(c):
             pygame.draw.line(screen, pygame.Color("white"), (x1, yL), (x1, yLprev))
         yLprev = yL
 
-def renderTrace(d, reporting=0):
+def processDigital(d):
     counts = []
     prevCount = None
     prevLevel = None
@@ -108,7 +109,46 @@ def renderTrace(d, reporting=0):
             counts.append((item, None))
     if prevLevel is not None:
         counts.append((prevLevel, prevCount))
-    
+    return counts
+
+def processAnalog(d):
+    counts = []
+    prevCount = None
+    prevLevel = None
+    shift = 0
+    for item in parseHexBuf(d):
+        prefix = item & log_prefix_mask
+        if prefix == log_prefix_low: #"new value"
+            if prevCount is not None:
+                counts.append((prevLevel, prevCount + 1))
+            prevLevel = item
+            prevCount = 0
+            shift = 0
+        elif prefix == log_prefix_again:
+            prevCount |= (item & log_max_count) << shift
+            shift += log_count_bits
+        else:
+            if prevLevel is not None:
+                counts.append((prevLevel, prevCount + 1))
+            prevCount = None
+            prevLevel = None
+            counts.append((item, None))
+    if prevLevel is not None:
+        counts.append((prevLevel, prevCount + 1))
+    return counts
+
+def renderTrace(d, reporting=0):
+    isAnalog = d.startswith("a")
+    if isAnalog:
+        counts = processAnalog(d)
+        traceRowH = traceRowH_A
+        maxLevel = 63
+    else:
+        counts = processDigital(d)
+        traceRowH = traceRowH_D
+        maxLevel = 1
+    def calcYoffset(level):
+        return int(traceRowH - (traceRowH - 1) * level / maxLevel - 1)
     if reporting > 1:
         print(counts)
     countsCut = [[]]
@@ -161,10 +201,10 @@ def renderTrace(d, reporting=0):
             else:
                 x1 = x
                 x2 = x + count
-                y1 = y if level else y + traceRowH - 1
+                y1 = y + calcYoffset(level)
                 pygame.draw.line(screen, pygame.Color("white"), (x1, y1), (x2, y1))
                 if prevLevel is not None and level != prevLevel:
-                    y2 = y if prevLevel else y + traceRowH - 1
+                    y2 = y + calcYoffset(prevLevel)
                     pygame.draw.line(screen, pygame.Color("white"), (x1, y1), (x1, y2))
                 prevLevel = level
                 x += count
@@ -240,13 +280,13 @@ def consoleThread():
     if state != "file":
         print("please wait...")
         time.sleep(2)
-        ser.write("d1\n".encode("ascii"))
+        ser.write((debugCmd + "\n").encode("ascii"))
         ser.write((code + "\n").encode("ascii"))
     r = None; c = None; d = None
     while 1:
         line = ser.readline().decode("ascii").rstrip()
         if line != "":
-            if line.startswith("r:") or line.startswith("s:") or line == "t":
+            if line.startswith("r:") or line.startswith("s:") or line.startswith("t:") or line == "t":
                 r = line
                 print(line)
             elif line.startswith("c:"):
@@ -254,7 +294,7 @@ def consoleThread():
                     print("got c without r")
                 else:
                     c = line
-            elif line.startswith("d:"):
+            elif line.startswith("d:") or line.startswith("a:"):
                 if r is None:
                     print("got d without r")
                 else:
@@ -284,6 +324,10 @@ else:
         print("required arg: code")
         sys.exit()
     code = sys.argv[2]
+    if len(sys.argv) >= 4:
+        debugCmd = sys.argv[3]
+    else:
+        debugCmd = "d1"
     ser = serial.Serial(filename, 9600)
 
 pygame.init()

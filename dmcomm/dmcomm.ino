@@ -27,14 +27,6 @@ const byte dm_pin_Ain = A3;
 const byte probe_pin = 2;
 
 
-//analog conversion parameters
-
-//sensor_threshold has moved to dm_times
-//want sensor_levels << sensor_shift == 1024 (for ADC)
-const byte sensor_levels = 16;
-const byte sensor_shift = 6;
-
-
 //durations, in microseconds unless otherwise specified
 
 const unsigned int tick_length = 200;
@@ -89,13 +81,14 @@ int logIndex;
 byte prevSensorLevel;
 long ticksSame;
 enum circuitTypes {dcom, acom} circuitType;
+enum debugModes {debug_off, debug_digital, debug_analog} debugMode;
 unsigned int listeningSensorValue;
 
 struct dm_times_t {
     char timing_id;
     byte logic_high, logic_low;
     boolean invert_bit_read;
-    int sensor_threshold;
+    byte sensor_threshold;
     unsigned long pre_high, pre_low;
     unsigned long start_high, start_low, bit1_high, bit1_low, bit0_high, bit0_low, send_recovery;
     unsigned long bit1_high_min;
@@ -155,12 +148,12 @@ void initDmTimes(char timingID) {
         dm_times.bit1_high_min = 3000;
         dm_times.timeout_bit = 20000;
     }
-    //sensor_threshold should be a multiple of (1 << sensor_shift)
+    //this is a 6-bit scale from 0-3.3V
     //keeping this logic separate because it's likely to grow
     if (timingID == 'Y') {
-        dm_times.sensor_threshold = 0x100; //1.3V approx
+        dm_times.sensor_threshold = 25; //1.3V approx
     } else {
-        dm_times.sensor_threshold = 0x180; //1.9V approx
+        dm_times.sensor_threshold = 37; //1.9V approx
     }
 }
 
@@ -260,15 +253,20 @@ void addLogByte(byte b) {
     }
 }
 
-//add current digital sensor level and time to the log (may be multiple bytes)
+//add current sensor level and time to the log (may be multiple bytes)
 //and initialize next timing
 void addLogTime() {
-    byte log_prefix = (prevSensorLevel == LOW) ? log_prefix_low : log_prefix_high;
     if (ticksSame == 0) {
         return;
     }
-    addLogByte((ticksSame & log_max_count) | log_prefix);
-    ticksSame >>= log_count_bits;
+    if (debugMode == debug_analog) {
+        addLogByte(prevSensorLevel);
+        ticksSame --;
+    } else {
+        byte log_prefix = (prevSensorLevel == LOW) ? log_prefix_low : log_prefix_high;
+        addLogByte((ticksSame & log_max_count) | log_prefix);
+        ticksSame >>= log_count_bits;
+    }
     while (ticksSame > 0) {
         addLogByte((ticksSame & log_max_count) | log_prefix_again);
         ticksSame >>= log_count_bits;
@@ -281,6 +279,19 @@ void addLogEvent(byte b) {
     addLogByte(b);
 }
 
+//scale 10-bit ADC to 6 bits 0-3.3V
+byte scaleSensorValue(unsigned int sensorValue) {
+#ifdef BOARD_3V3
+    sensorValue = sensorValue / 16;
+#else
+    sensorValue = sensorValue * 3 / 32;
+#endif
+    if (sensorValue > 63) {
+        sensorValue = 63;
+    }
+    return (byte)sensorValue;
+}
+
 //read analog input and do logging, clocked by tick_length;
 //return current logic level measured
 byte doTick(boolean first=false) {
@@ -288,7 +299,9 @@ byte doTick(boolean first=false) {
     static int ticks = 0;
     
     unsigned int sensorValue;
-    byte sensorLevel;
+    byte sensorLevelScaled;
+    byte sensorLevelDigital;
+    byte sensorLevelForLog;
     byte ticksMissed = 0;
     
     sensorValue = analogRead(dm_pin_Ain);
@@ -319,20 +332,29 @@ byte doTick(boolean first=false) {
         digitalWrite(probe_pin, HIGH);
     }
     
-    if (sensorValue >= dm_times.sensor_threshold) {
-        sensorLevel = HIGH;
+    sensorLevelScaled = scaleSensorValue(sensorValue);
+    
+    if (sensorLevelScaled >= dm_times.sensor_threshold) {
+        sensorLevelDigital = HIGH;
     } else {
-        sensorLevel = LOW;
+        sensorLevelDigital = LOW;
     }
     
-    if (sensorLevel != prevSensorLevel) {
+    if (debugMode == debug_analog) {
+        sensorLevelForLog = sensorLevelScaled;
+    } else {
+        sensorLevelForLog = sensorLevelDigital;
+    }
+    
+    if (sensorLevelForLog != prevSensorLevel) {
         addLogTime();
         ticksSame = 1;
     } else {
         ticksSame ++;
     }
-    prevSensorLevel = sensorLevel;
-    if (sensorLevel == HIGH) {
+    prevSensorLevel = sensorLevelForLog;
+    
+    if (sensorLevelDigital == HIGH) {
         return dm_times.logic_high;
     } else {
         return dm_times.logic_low;
@@ -745,7 +767,6 @@ char serialRead(byte * buffer) {
 //main loop
 void loop() {
     static boolean active = false;
-    static boolean debug = false;
     static char timingID;
     static boolean listenOnly;
     static boolean goFirst;
@@ -768,12 +789,15 @@ void loop() {
             scanVoltagesAndReport();
         }
         if ((buffer[0] == 'd' || buffer[0] == 'D') && i >= 2) {
-            if (buffer[1] == '0') {
+            if (buffer[1] == '0' || buffer[1] == 'o' || buffer[1] == 'O') {
                 Serial.print(F("debug off "));
-                debug = false;
-            } else {
-                Serial.print(F("debug on "));
-                debug = true;
+                debugMode = debug_off;
+            } else if (buffer[1] == '1' || buffer[1] == 'd' || buffer[1] == 'D') {
+                Serial.print(F("debug digital "));
+                debugMode = debug_digital;
+            } else if (buffer[1] == '2' || buffer[1] == 'a' || buffer[1] == 'A') {
+                Serial.print(F("debug analog "));
+                debugMode = debug_analog;
             }
         }
         active = true;
@@ -841,8 +865,13 @@ void loop() {
         } else {
             commBasic(goFirst, buffer);
         }
-        if (debug) {
+        if (debugMode == debug_digital) {
             Serial.print(F("d:"));
+        }
+        if (debugMode == debug_analog) {
+            Serial.print(F("a:"));
+        }
+        if (debugMode != debug_off) {
             for (i = 0; i < logIndex; i ++) {
                 serialPrintHex(logBuf[i], 2);
                 Serial.print(' ');
