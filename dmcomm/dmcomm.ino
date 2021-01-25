@@ -1,7 +1,7 @@
 /*
   Project using Arduino to communicate with Digimon toys
 
-  Copyright (c) 2014,2017,2018,2020 BladeSabre
+  Copyright (c) 2014,2017,2018,2020,2021 BladeSabre
 
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -60,6 +60,8 @@ const byte log_prefix_again = 0b10000000;
 const byte log_prefix_other = 0b11000000;
 const byte log_max_count    = 0b00111111;
 const byte log_count_bits   = 6;
+const byte log_prefix_tick_overrun = 0xF0;
+const byte log_max_ticks_missed = 0x0F;
 
 const byte log_opp_enter_wait = 0xC0;
 const byte log_opp_init_pulldown = 0xC1;
@@ -78,8 +80,6 @@ const byte log_self_start_bit_low = 0xE3;
 const byte log_self_send_bit_0 = 0xE5;
 const byte log_self_send_bit_1 = 0xE6;
 const byte log_self_release = 0xE7;
-
-const byte log_tick_overrun = 0xF0;
 
 
 //globals
@@ -291,19 +291,29 @@ byte doTick(boolean first=false) {
     unsigned int sensorValue;
     int sensorCat;
     byte sensorLevel;
+    byte ticksMissed = 0;
     
     sensorValue = analogRead(dm_pin_Ain);
     
-    if (micros() - prev_micros > tick_length) {
-        if (!first) {
-            addLogEvent(log_tick_overrun);
-        }
-        prev_micros = micros();
-    } else {
+    //counts missed ticks for log (but delayByTicks does not currently account for them)
+    while (ticksMissed <= log_max_ticks_missed && micros() - prev_micros > tick_length) {
+        prev_micros += tick_length;
+        ticks ++;
+        ticksMissed ++;
+    }
+    if (ticksMissed <= log_max_ticks_missed) {
         while(micros() - prev_micros < tick_length);
         prev_micros += tick_length;
+        ticks ++;
+    } else {
+        prev_micros = micros();
     }
-    ticks ++;
+    if (ticksMissed != 0 && !first) {
+        if (ticksMissed > log_max_ticks_missed) {
+            ticksMissed = 0;
+        }
+        addLogEvent(log_prefix_tick_overrun | ticksMissed);
+    }
     
     if (ticks % 2 == 0) {
         digitalWrite(probe_pin, LOW);
