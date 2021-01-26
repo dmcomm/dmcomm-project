@@ -173,9 +173,9 @@ def renderTrace(d, reporting=0):
     y = traceY
     prevLevel = None
     for rowCounts in countsCut:
-        rect = pygame.Rect(0, y, screenWidth, traceMargin)
-        pygame.draw.rect(screen, pygame.Color("dark red"), rect, 0)
         y += traceMargin
+        rect = pygame.Rect(0, y, screenWidth, traceRowH)
+        pygame.draw.rect(screen, pygame.Color("dark blue"), rect, 0)
         x = 0
         for (level, count) in rowCounts:
             if count is None:
@@ -209,8 +209,6 @@ def renderTrace(d, reporting=0):
                 prevLevel = level
                 x += count
         y += traceRowH
-    rect = pygame.Rect(0, y, screenWidth, traceMargin)
-    pygame.draw.rect(screen, pygame.Color("dark red"), rect, 0)
 
 def display(cursor, curmax, data, reporting=0):
     (r, c, d) = data
