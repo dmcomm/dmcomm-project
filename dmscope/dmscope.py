@@ -51,6 +51,9 @@ log_prefix_mask  = 0b11000000
 log_max_count    = 0b00111111
 log_count_bits   = 6
 
+log_prefix_tick_overrun = 0xF0
+log_max_ticks_missed = 0x0F
+
 
 def parseHexBuf(s):
     parts = s[2:].split(" ")
@@ -80,6 +83,16 @@ def renderCounts(c):
             pygame.draw.line(screen, pygame.Color("white"), (x1, yL), (x1, yLprev))
         yLprev = yL
 
+def checkMissedTicks(item):
+    if item & log_prefix_tick_overrun == log_prefix_tick_overrun:
+        ticksMissed = item & log_max_ticks_missed
+        if ticksMissed == 0:
+            return [(None, 8), (item, None), (None, 8)]
+        else:
+            return [(None, ticksMissed)]
+    else:
+        return [(item, None)]
+
 def processDigital(d):
     counts = []
     prevCount = None
@@ -106,7 +119,7 @@ def processDigital(d):
                 counts.append((prevLevel, prevCount))
             prevCount = None
             prevLevel = None
-            counts.append((item, None))
+            counts.extend(checkMissedTicks(item))
     if prevLevel is not None:
         counts.append((prevLevel, prevCount))
     return counts
@@ -132,7 +145,7 @@ def processAnalog(d):
                 counts.append((prevLevel, prevCount + 1))
             prevCount = None
             prevLevel = None
-            counts.append((item, None))
+            counts.extend(checkMissedTicks(item))
     if prevLevel is not None:
         counts.append((prevLevel, prevCount + 1))
     return counts
@@ -201,9 +214,10 @@ def renderTrace(d, reporting=0):
             else:
                 x1 = x
                 x2 = x + count
-                y1 = y + calcYoffset(level)
-                pygame.draw.line(screen, pygame.Color("white"), (x1, y1), (x2, y1))
-                if prevLevel is not None and level != prevLevel:
+                if level is not None:
+                    y1 = y + calcYoffset(level)
+                    pygame.draw.line(screen, pygame.Color("white"), (x1, y1), (x2, y1))
+                if prevLevel is not None and level is not None and level != prevLevel:
                     y2 = y + calcYoffset(prevLevel)
                     pygame.draw.line(screen, pygame.Color("white"), (x1, y1), (x1, y2))
                 prevLevel = level
