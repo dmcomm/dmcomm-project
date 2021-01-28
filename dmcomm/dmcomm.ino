@@ -416,23 +416,20 @@ boolean busWait(byte level, unsigned long timeout) {
 }
 
 //receive one bit, and rotate into bits from the left;
-//return false on success, true on error
-boolean rcvBit(unsigned int * bits) {
+//return 0 on success, 1 on bit error, 2 on error after receiving bit
+byte rcvBit(unsigned int * bits) {
     unsigned long time;
     unsigned long timeout = dm_times.timeout_bit;
     boolean bit0 = false;
     time = busWaitTime(LOW, timeout);
     if (time > timeout) {
-        return true;
+        return 1;
     }
     if (time > dm_times.bit1_high_min) {
         bit0 = true;
     }
     if (dm_times.invert_bit_read) {
         bit0 = !bit0;
-    }
-    if (busWait(HIGH, timeout)) {
-        return true;
     }
     (*bits) >>= 1;
     if (bit0) {
@@ -441,7 +438,10 @@ boolean rcvBit(unsigned int * bits) {
     } else {
         addLogEvent(log_opp_got_bit_0);
     }
-    return false;
+    if (busWait(HIGH, timeout)) {
+        return 2;
+    }
+    return 0;
 }
 
 //receive a 16-bit packet,
@@ -449,7 +449,7 @@ boolean rcvBit(unsigned int * bits) {
 //reporting results on serial and storing into bits parameter;
 //return 0 on success, non-zero error code on failure
 int rcvPacketGet(unsigned int * bits, unsigned long timeout1) {
-    char i;
+    byte i, r;
     if (timeout1 == 0) {
         timeout1 = dm_times.timeout_reply;
     }
@@ -479,14 +479,24 @@ int rcvPacketGet(unsigned int * bits, unsigned long timeout1) {
     }
     addLogEvent(log_opp_bits_begin_high);
     for (i = 0; i < 16; i ++) {
-        if (rcvBit(bits)) {
+        r = rcvBit(bits);
+        if (r == 2 && i == 15) {
+            //opp didn't release at end of packet
+            Serial.print(F("r:"));
+            serialPrintHex(*bits, 4);
+            Serial.print(F("t "));
+            addLogEvent(log_opp_exit_fail);
+            return 16;
+        } else if (r != 0) {
+            //packet failed
+            r = i + r - 1; //number of bits received
             Serial.print(F("t:"));
             Serial.print(i, DEC);
             Serial.print(':');
-            serialPrintHex((*bits) >> (16-i), 4);
+            serialPrintHex((*bits) >> (16-r), 4);
             Serial.print(' ');
             addLogEvent(log_opp_exit_fail);
-            return i+1;
+            return r;
         }
     }
     Serial.print(F("r:"));
