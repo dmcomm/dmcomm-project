@@ -83,6 +83,8 @@ long ticksSame;
 enum circuitTypes {dcom, acom} circuitType;
 enum debugModes {debug_off, debug_digital, debug_analog} debugMode;
 unsigned int listeningSensorValue;
+byte currentPacketIndex;
+byte triggerPacketIndex;
 
 struct dm_times_t {
     char timing_id;
@@ -247,7 +249,7 @@ void scanVoltagesAndReport() {
 
 //add specified byte to the log
 void addLogByte(byte b) {
-    if (logIndex < log_length) {
+    if (currentPacketIndex >= triggerPacketIndex && logIndex < log_length) {
         logBuf[logIndex] = b;
         logIndex ++;
     }
@@ -365,6 +367,7 @@ byte doTick(boolean first=false) {
 void startLog() {
     logIndex = 0;
     ticksSame = 0;
+    currentPacketIndex = 0;
 }
 
 //delay by specified number of microseconds (with resolution of tick_length)
@@ -459,6 +462,7 @@ int rcvPacketGet(unsigned int * bits, unsigned long timeout1) {
         Serial.print(F("t "));
         return -4;
     }
+    currentPacketIndex ++;
     addLogEvent(log_opp_init_pulldown);
     if (busWait(HIGH, dm_times.timeout_bits)) {
         addLogEvent(log_opp_exit_fail);
@@ -535,6 +539,7 @@ void sendPacket(unsigned int bits) {
     Serial.print(F("s:"));
     serialPrintHex(bits, 4);
     Serial.print(' ');
+    currentPacketIndex ++;
     addLogEvent(log_self_enter_delay);
     delayByTicks(dm_times.pre_high);
     
@@ -692,6 +697,36 @@ void commBasic(boolean goFirst, byte * buffer) {
 
 //serial processing
 
+//create trigger if we got a hex digit 1-F, and A/B, for a packet number
+//otherwise disable trigger
+void setupTrigger(char packetNumChr, char AB) {
+    char packetNum = hex2val(packetNumChr);
+    boolean OK = (packetNum >= 1);
+    triggerPacketIndex = packetNum * 2 - 1;
+    if (AB == 'a' || AB == 'A') {
+        //do nothing
+    } else if (AB == 'b' || AB == 'B') {
+        triggerPacketIndex ++;
+    } else {
+        OK = false;
+    }
+    if (!OK) {
+        triggerPacketIndex = 0;
+    }
+}
+
+//report trigger packet number with a hex digit and A/B
+void serialPrintTrigger() {
+    Serial.write(val2hex((triggerPacketIndex + 1) / 2));
+    if (triggerPacketIndex != 0) {
+        if (triggerPacketIndex % 2 == 0) {
+            Serial.write('B');
+        } else {
+            Serial.write('A');
+        }
+    }
+}
+
 //return integer value of hex digit character, or -1 if not a hex digit
 char hex2val(char hexdigit) {
     char value;
@@ -808,6 +843,16 @@ void loop() {
             } else if (buffer[1] == '2' || buffer[1] == 'a' || buffer[1] == 'A') {
                 Serial.print(F("debug analog "));
                 debugMode = debug_analog;
+            }
+            if (i >= 5 && buffer[2] == '-') {
+                setupTrigger(buffer[3], buffer[4]);
+            } else {
+                setupTrigger(' ', ' ');
+            }
+            if (debugMode != debug_off) {
+                Serial.print(F("trigger="));
+                serialPrintTrigger();
+                Serial.print(' ');
             }
         }
         active = true;

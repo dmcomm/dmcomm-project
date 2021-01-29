@@ -238,9 +238,8 @@ def display(cursor, curmax, data, reporting=0):
     
     if c is not None:
         renderCounts(c)
-    if d is None:
-        d = "d:01"
-    renderTrace(d, reporting)
+    if d is not None and len(d) >= 4:
+        renderTrace(d, reporting)
     pygame.display.update()
 
 def pygameThread():
