@@ -8,6 +8,7 @@ The command-line arguments are as follows:
 
 * The name of the serial port (see below). Or the path to a text file containing results data in the same format (see `test.txt`).
 * If the path provided is a serial port and not a file, a second argument is required with the dmcomm code, the same as would be used for a serial command (see `codes.txt` in the folder above).
+* If the path provided is a serial port and not a file, a third optional argument specifies the debug command to send, e.g. `DA-1A`. See the main README for details. `D1` is the default, for backwards compatibility.
 
 If the serial connection was successful, a Pygame window will open, and after a few seconds will start displaying results. Controls are as follows:
 
@@ -18,15 +19,17 @@ If the serial connection was successful, a Pygame window will open, and after a 
 
 The line of text at the top of the Pygame window shows where you are in the history, and the short description of the result.
 
-The next section is a frequency plot of the voltages detected - the most common voltages should be in the green areas, with nothing in the red. The orange area is probably OK, depending on the USB voltage.
+The second line shows the operating parameters reported on the `p:` row (see the main README for details).
 
-The main section is the digital trace, of signal level against time, split across multiple rows. Each pixel horizontally on the image represents 200 microseconds. There are also some coloured dots to mark events:
+With older versions of the `dmcomm` sketch, the second line instead shows a frequency plot of the voltages detected - the most common voltages should be in the green areas, with nothing in the red. The orange area is probably OK, depending on the USB voltage.
+
+The main section is the trace, of signal level against time, split across multiple rows. Each pixel horizontally on the image represents 200 microseconds. There are also some coloured dots to mark events:
 
 * Cyan: non-bit stages of receiving
 * Magenta: receiving failed
 * Green: non-bit stages of sending
-* White: finished receiving bit 0; about to send bit 0 (this is inconsistent and may be changed soon)
-* Yellow: finished receiving bit 1; about to send bit 1 (ditto)
+* White: detected the falling edge of bit 0; about to send bit 0
+* Yellow: detected the falling edge of bit 1; about to send bit 1
 * Red: unknown event
 
 ## Windows
@@ -44,7 +47,8 @@ Connect your Arduino. The serial port is likely to be named COM3 or any other nu
 
 Open Command Prompt or PowerShell in the folder containing `dmscope.py`, and run it for example:
 
-`python dmscope.py COM3 V1-FC03-FD02`
+* `python dmscope.py COM3 V1-FC03-FD02`
+* `python dmscope.py COM4 "V2-FC03-F^30^3" DA-1A` (the code needs to be quoted because `^` is a special character in Command Prompt)
 
 ## Linux
 
@@ -56,5 +60,7 @@ Joining the `dialout` user group is recommended, to avoid the need for root.
 
 Connect your Arduino. The serial port is likely to be named `/dev/ttyACM0` or `/dev/ttyUSB0` (or a higher number if other serial devices are present).
 
-Example: `./dmscope.py /dev/ttyUSB0 V1-FC03-FD02`
+Examples:
+* `./dmscope.py /dev/ttyACM0 V1-FC03-FD02`
+* `./dmscope.py /dev/ttyUSB0 V2-FC03-F^30^3 DA-1A`
 
