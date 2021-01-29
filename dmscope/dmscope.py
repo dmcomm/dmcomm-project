@@ -225,10 +225,11 @@ def renderTrace(d, reporting=0):
         y += traceRowH
 
 def display(cursor, curmax, data, reporting=0):
-    (r, c, d) = data
+    (r, c, p, d) = data
     if reporting:
         print(r)
         print(c)
+        print(p)
         print(d)
     
     summary = r + "  (" + str(cursor+1) + "/" + str(curmax+1) + " " + state + ")"
@@ -238,6 +239,11 @@ def display(cursor, curmax, data, reporting=0):
     
     if c is not None:
         renderCounts(c)
+    elif p is not None:
+        #only expecting one of these
+        t = font.render(p[2:], False, pygame.Color("white"))
+        screen.blit(t, (0, countsY))
+    
     if d is not None and len(d) >= 4:
         renderTrace(d, reporting)
     pygame.display.update()
@@ -272,7 +278,7 @@ def pygameThread():
             if len(results) > 0:
                 display(cursor, curmax, results[cursor], reporting)
             else:
-                display(-1, -1, ("please wait...", None, None), 0)
+                display(-1, -1, ("please wait...", None, None, None), 0)
         curAtMax = (cursor == curmax)
         new = False
         while not resultQ.empty():
@@ -293,7 +299,7 @@ def consoleThread():
         time.sleep(2)
         ser.write((debugCmd + "\n").encode("ascii"))
         ser.write((code + "\n").encode("ascii"))
-    r = None; c = None; d = None
+    r = None; c = None; p = None; d = None
     while 1:
         line = ser.readline().decode("ascii").rstrip()
         if line != "":
@@ -305,16 +311,21 @@ def consoleThread():
                     print("got c without r")
                 else:
                     c = line
+            elif line.startswith("p:"):
+                if r is None:
+                    print("got p without r")
+                else:
+                    p = line
             elif line.startswith("d:") or line.startswith("a:"):
                 if r is None:
                     print("got d without r")
                 else:
                     d = line
                     if state != "paused":
-                        resultQ.put((r, c, d), True)
+                        resultQ.put((r, c, p, d), True)
                     else:
                         print("ignored")
-                    r = None; c = None; d = None
+                    r = None; c = None; p = None; d = None
             else:
                 print(line)
 

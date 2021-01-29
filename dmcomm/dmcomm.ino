@@ -920,6 +920,15 @@ void loop() {
         } else {
             commBasic(goFirst, buffer);
         }
+        if (debugMode != debug_off) {
+            Serial.print(F("p:timing="));
+            Serial.write(timingID);
+            Serial.print(F(" threshold="));
+            Serial.print(dm_times.sensor_threshold);
+            Serial.print(F(" trigger="));
+            serialPrintTrigger();
+            Serial.println();
+        }
         if (debugMode == debug_digital) {
             Serial.print(F("d:"));
         }
