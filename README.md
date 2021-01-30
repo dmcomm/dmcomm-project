@@ -66,7 +66,7 @@ There are also some descriptive messages about what it is doing. It will echo ba
 
 ### c-line (c for "counts")
 
-On older versions of the sketch, `c:XXXX XXXX...XXXX` contained a frequency map of the voltages, with 16 4-digit hex values representing the sample counts from dividing the ADC result into 16 buckets. Supposing the power supply is exactly 5V, the left number is the number of samples measured between 0V-0.31V, the second number between 0.31V-0.62V ... the rightmost number between 4.69V-5V. This was replaced by the analog debug mode.
+On older versions of the sketch, `c:XXXX XXXX...XXXX` contained a frequency map of the voltages, with 16 4-digit hex values representing the sample counts from dividing the ADC result into 16 buckets. Supposing the power supply is exactly 5V, the left number is the number of samples measured between 0V-0.31V, the second number between 0.31V-0.62V ... the rightmost number between 4.69V-5V. This feature was replaced by the voltage test and the analog debug mode.
 
 ### Trace and events
 

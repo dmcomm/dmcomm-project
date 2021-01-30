@@ -235,19 +235,19 @@ void scanVoltagesAndReport() {
         reportVoltage(listeningSensorValue);
         digitalWrite(dm_pin_out, HIGH);
         digitalWrite(dm_pin_notOE, LOW);
-        delay(100);
+        delay(40);
         sensorValue = analogRead(dm_pin_Ain);
         digitalWrite(dm_pin_notOE, HIGH);
-        Serial.print(F(". Drive high voltage: "));
+        Serial.print(F(". Long drive high voltage: "));
         reportVoltage(sensorValue);
     } else {
         Serial.print(F("ACom likely. Logic high voltage: "));
         reportVoltage(listeningSensorValue);
     }
 #ifdef BOARD_3V3
-    Serial.println(F(". Ref: 3.3V."));
+    Serial.println(F(". (Ref: 3.3V.)"));
 #else
-    Serial.println(F(". Ref: ~5V USB."));
+    Serial.println(F(". (Ref: ~5V.)"));
 #endif
 }
 
