@@ -1,14 +1,7 @@
 
 # DMComm
 
-Project using Arduino to communicate with Digimon toys, by BladeSabre, bladethecoder@gmail.com
-
-Licences:
-* C code: GPLv3+ (see file dmcomm/COPYING)
-* Python code: BSD (see code headers)
-* Documentation, diagrams and photos: CC-BY-SA ( https://creativecommons.org/licenses/by-sa/4.0/ )
-
-*This project is provided with absolutely no warranty! The author is not responsible for any damage to your property that may result from following these instructions.*
+Project using Arduino to communicate with Digimon toys, by BladeSabre ( bladethecoder@gmail.com ). License: MIT.
 
 ## Overview
 
