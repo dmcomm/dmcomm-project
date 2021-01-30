@@ -49,6 +49,7 @@ Open Command Prompt or PowerShell in the folder containing `dmscope.py`, and run
 
 * `python dmscope.py COM3 V1-FC03-FD02`
 * `python dmscope.py COM4 "V2-FC03-F^30^3" DA-1A` (the code needs to be quoted because `^` is a special character in Command Prompt)
+* `python dmscope.py test.txt`
 
 ## Linux
 
@@ -63,4 +64,5 @@ Connect your Arduino. The serial port is likely to be named `/dev/ttyACM0` or `/
 Examples:
 * `./dmscope.py /dev/ttyACM0 V1-FC03-FD02`
 * `./dmscope.py /dev/ttyUSB0 V2-FC03-F^30^3 DA-1A`
+* `./dmscope.py test.txt`
 

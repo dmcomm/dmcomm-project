@@ -63,6 +63,8 @@ Ensure there is no toy connected to the output, and send "T". The sketch will ru
 
 There are also some descriptive messages about what it is doing. It will echo back commands it receives so you can see if they were delivered and processed as expected.
 
+**The rest of this document explains the debug protocol. Most people can stop reading here!**
+
 ### p-line (p for "parameters")
 
 * `timing` is V/X/Y according to the code specified.

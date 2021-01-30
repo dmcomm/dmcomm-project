@@ -27,6 +27,8 @@ The circuit works fine on breadboard. Diagrams for a stripboard Uno shield are a
 
 The original design lacked the 10K pull-downs on the tristate buffer's inputs. Some 74HC125 chips are built to handle this, including NXP and Philips brands. However, some other brands leak current to Vcc, resulting in a higher voltage at the output. Fortunately, the capacitors largely keep the voltage down when the Arduino is signalling, so most of the overvoltage at the toy comes through the 100K pull-up. Also, the diode protects the Arduino's 3.3V pin. Codes for the Xros Mini drive the line high for longer periods, so these are more likely to be harmful.
 
+To confirm whether a D-Com has the issue, check the voltage at the output, using either a voltmeter or the voltage test in the sketch, as above. It should be below 3V.
+
 To fix a D-Com with the issue, there are three options:
 
 * Add the 10K pull-downs to the inputs of the 74HC125.
