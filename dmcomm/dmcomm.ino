@@ -84,9 +84,9 @@ byte logBuf[log_length];
 int logIndex;
 byte prevSensorLevel;
 long ticksSame;
-enum circuitTypes {dcom, acom} circuitType;
+enum circuitTypes {dcom, acom, uncom} circuitType;
 enum debugModes {debug_off, debug_digital, debug_analog} debugMode;
-unsigned int listeningSensorValue;
+byte acomVSensorThreshold;
 byte currentPacketIndex;
 byte triggerPacketIndex;
 
@@ -184,13 +184,14 @@ void busDriveHigh() {
 void busRelease() {
     digitalWrite(dm_pin_notOE, HIGH);
     digitalWrite(dm_pin_out, dm_times.logic_high);
-    //dm_pin_out is "don't care" on the original 3-state circuit design,
-    //but there is an alternative 2-state design which this applies to
+    //dm_pin_out is "don't care" on D-Com, but matters for A-Com
 }
 
 void reportVoltage(unsigned int sensorValue) {
     float sensorValueF, Vmin, Vmax;
     sensorValueF = sensorValue;
+    Serial.print(sensorValue);
+    Serial.print(F(" units = "));
 #ifdef BOARD_3V3
     const float warning_threshold = 3.0;
     Vmin = sensorValueF * 3.3 / 1024.0;
@@ -207,48 +208,88 @@ void reportVoltage(unsigned int sensorValue) {
     if (Vmin > warning_threshold) {
         Serial.print(F(" WARNING"));
     }
+    Serial.print('\n');
 }
 
-void scanVoltageBasic() {
+void scanVoltages(boolean doReport) {
     unsigned int sensorValue;
-    //DCom/ACom detection first
-    digitalWrite(dm_pin_notOE, HIGH);
-    digitalWrite(dm_pin_out, LOW);
-    delay(5);
-    sensorValue = analogRead(dm_pin_Ain);
-    if (sensorValue > 0xD0) { //~1V when ref=5V, 0.7V when ref=3.3V, doesn't matter exactly
-        circuitType = dcom;
+    byte enabledHigh, enabledLow, disabledHigh, disabledLow;
+    const byte levelHalfaV = 10;
+    const byte level2V = 39;
+#ifdef BOARD_3V3
+    Serial.println(F("Reference declared: 3.3V"));
+#else
+    Serial.println(F("Reference declared: ~5V"));
+#endif
+    //enabled high:
+    digitalWrite(dm_pin_out, HIGH);
+    digitalWrite(dm_pin_notOE, LOW);
+    if (doReport) {
+        delay(40); //don't do this without being asked
     } else {
-        circuitType = acom;
+        delayMicroseconds(2500);
     }
-    //test listening voltage
+    sensorValue = analogRead(dm_pin_Ain);
+    digitalWrite(dm_pin_out, LOW); //do this before the reporting
+    enabledHigh = scaleSensorValue(sensorValue);
+    if (doReport) {
+        Serial.print(F("Enabled high (40ms): "));
+        reportVoltage(sensorValue);
+    }
+    //enabled low:
+    delay(40);
+    sensorValue = analogRead(dm_pin_Ain);
+    enabledLow = scaleSensorValue(sensorValue);
+    if (doReport) {
+        Serial.print(F("Enabled low (40ms): "));
+        reportVoltage(sensorValue);
+    }
+    //disabled low:
+    digitalWrite(dm_pin_notOE, HIGH);
+    delay(40);
+    sensorValue = analogRead(dm_pin_Ain);
+    disabledLow = scaleSensorValue(sensorValue);
+    if (doReport) {
+        Serial.print(F("Disabled low (40ms): "));
+        reportVoltage(sensorValue);
+    }
+    //disabled high:
     digitalWrite(dm_pin_out, HIGH);
     delay(100);
-    listeningSensorValue = analogRead(dm_pin_Ain);
-}
-
-void scanVoltagesAndReport() {
-    unsigned int sensorValue;
-    scanVoltageBasic();
-    if (circuitType == dcom) {
-        Serial.print(F("DCom likely. Weak pull-up voltage: "));
-        reportVoltage(listeningSensorValue);
-        digitalWrite(dm_pin_out, HIGH);
-        digitalWrite(dm_pin_notOE, LOW);
-        delay(40);
-        sensorValue = analogRead(dm_pin_Ain);
-        digitalWrite(dm_pin_notOE, HIGH);
-        Serial.print(F(". Long drive high voltage: "));
+    sensorValue = analogRead(dm_pin_Ain);
+    disabledHigh = scaleSensorValue(sensorValue);
+    if (doReport) {
+        Serial.print(F("Disabled high (100ms): "));
         reportVoltage(sensorValue);
-    } else {
-        Serial.print(F("ACom likely. Logic high voltage: "));
-        reportVoltage(listeningSensorValue);
     }
-#ifdef BOARD_3V3
-    Serial.println(F(". (Ref: 3.3V.)"));
-#else
-    Serial.println(F(". (Ref: ~5V.)"));
-#endif
+    //analysis:
+    if (disabledLow >= level2V) {
+        //probably DCom
+        circuitType = dcom;
+    } else {
+        //probably ACom
+        circuitType = acom;
+        acomVSensorThreshold = enabledHigh - levelHalfaV;
+        if (disabledLow > 0) {
+            circuitType = uncom;
+        }
+        char diff = enabledHigh - disabledHigh;
+        if (diff > 1 || diff < -1) {
+            circuitType = uncom;
+        }
+    }
+    if (enabledHigh < level2V || disabledHigh < level2V || enabledLow > 0) {
+        circuitType = uncom;
+    }
+    if (doReport) {
+        if (circuitType == dcom) {
+            Serial.println(F("D-Com detected"));
+        } else if (circuitType == acom) {
+            Serial.println(F("A-Com detected"));
+        } else {
+            Serial.println(F("Circuit not recognised"));
+        }
+    }
 }
 
 //add specified byte to the log
@@ -835,7 +876,7 @@ void loop() {
         Serial.print(F(" -> "));
         if (buffer[0] == 't' || buffer[0] == 'T') {
             Serial.println(F("[test voltages]"));
-            scanVoltagesAndReport();
+            scanVoltages(true);
         }
         if ((buffer[0] == 'd' || buffer[0] == 'D') && i >= 2) {
             if (buffer[1] == '0' || buffer[1] == 'o' || buffer[1] == 'O') {
