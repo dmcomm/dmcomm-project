@@ -155,11 +155,12 @@ void initDmTimes(char timingID) {
         dm_times.timeout_bit = 20000;
     }
     //this is a 6-bit scale from 0-3.3V
-    //keeping this logic separate because it's likely to grow
-    if (timingID == 'Y') {
+    if (circuitType == acom && timingID == 'V') {
+        dm_times.sensor_threshold = acomVSensorThreshold;
+    } else if (timingID == 'Y') {
         dm_times.sensor_threshold = 25; //1.3V approx
     } else {
-        dm_times.sensor_threshold = 37; //1.9V approx
+        dm_times.sensor_threshold = 35; //1.8V approx
     }
 }
 
@@ -426,18 +427,16 @@ void delayByTicks(unsigned long delay_micros) {
 }
 
 void setup() {     
-    Serial.begin(9600);  
-
-    ledOn();
-    busRelease();
-
+    Serial.begin(9600);
     pinMode(led_pin, OUTPUT);
     pinMode(probe_pin, OUTPUT);
     pinMode(dm_pin_out, OUTPUT);
     pinMode(dm_pin_notOE, OUTPUT);
     pinMode(dm_pin_Ain, INPUT);
-    
+    ledOn();
+    scanVoltages(false);
     initDmTimes('V');
+    busRelease();
 }
 
 
