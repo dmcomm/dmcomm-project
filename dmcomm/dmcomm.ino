@@ -86,7 +86,6 @@ byte prevSensorLevel;
 long ticksSame;
 enum circuitTypes {dcom, acom, uncom} circuitType;
 enum debugModes {debug_off, debug_digital, debug_analog} debugMode;
-byte acomVSensorThreshold;
 byte currentPacketIndex;
 byte triggerPacketIndex;
 
@@ -155,12 +154,11 @@ void initDmTimes(char timingID) {
         dm_times.timeout_bit = 20000;
     }
     //this is a 6-bit scale from 0-3.3V
-    if (circuitType == acom && timingID == 'V') {
-        dm_times.sensor_threshold = acomVSensorThreshold;
-    } else if (timingID == 'Y') {
+    //keeping this logic separate because it's likely to grow
+    if (timingID == 'Y') {
         dm_times.sensor_threshold = 25; //1.3V approx
     } else {
-        dm_times.sensor_threshold = 35; //1.8V approx
+        dm_times.sensor_threshold = 37; //1.9V approx
     }
 }
 
@@ -215,7 +213,6 @@ void reportVoltage(unsigned int sensorValue) {
 void scanVoltages(boolean doReport) {
     unsigned int sensorValue;
     byte enabledHigh, enabledLow, disabledHigh, disabledLow;
-    const byte levelHalfaV = 10;
     const byte level2V = 39;
 #ifdef BOARD_3V3
     Serial.println(F("Reference declared: 3.3V"));
@@ -270,7 +267,6 @@ void scanVoltages(boolean doReport) {
     } else {
         //probably ACom
         circuitType = acom;
-        acomVSensorThreshold = enabledHigh - levelHalfaV;
         if (disabledLow > 0) {
             circuitType = uncom;
         }
@@ -434,7 +430,6 @@ void setup() {
     pinMode(dm_pin_notOE, OUTPUT);
     pinMode(dm_pin_Ain, INPUT);
     ledOn();
-    scanVoltages(false);
     initDmTimes('V');
     busRelease();
 }
