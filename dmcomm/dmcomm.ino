@@ -851,7 +851,7 @@ char serialRead(byte * buffer) {
 //main loop
 void loop() {
     static boolean active = false;
-    static char timingID;
+    static char timingID = 'V';
     static boolean listenOnly;
     static boolean goFirst;
     static byte numPackets;
