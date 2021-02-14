@@ -90,7 +90,7 @@ byte currentPacketIndex;
 byte triggerPacketIndex;
 
 struct dm_times_t {
-    char timing_id;
+    int8_t timing_id;
     byte logic_high, logic_low;
     boolean invert_bit_read;
     byte sensor_threshold;
@@ -102,7 +102,7 @@ struct dm_times_t {
 
 
 //configure durations depending on whether we are using X timings or not
-void initDmTimes(char timingID) {
+void initDmTimes(int8_t timingID) {
     dm_times.timing_id = timingID;
     dm_times.timeout_reply = 100000;
     dm_times.timeout_bits = 200000; 
@@ -270,7 +270,7 @@ void scanVoltages(boolean doReport) {
         if (disabledLow > 0) {
             circuitType = uncom;
         }
-        char diff = enabledHigh - disabledHigh;
+        int8_t diff = enabledHigh - disabledHigh;
         if (diff > 1 || diff < -1) {
             circuitType = uncom;
         }
@@ -611,14 +611,14 @@ void sendPacket(unsigned int bits) {
 //read next packet from buffer; write bits to send into bitsNew and update checksum
 //bitsRcvd is the packet just received (ignored except with ^ token)
 //return number of bytes read from buffer on success, 0 if empty, -1 on failure
-int makePacket(unsigned int * bitsNew, char * checksum, unsigned int bitsRcvd, byte * buffer) {
-    char digits[4];
-    char dCur;
-    char dCurChk = -1;
-    char chkTarget = -1;
+int makePacket(unsigned int * bitsNew, int8_t * checksum, unsigned int bitsRcvd, byte * buffer) {
+    int8_t digits[4];
+    int8_t dCur;
+    int8_t dCurChk = -1;
+    int8_t chkTarget = -1;
     int bufCur = 1;
     byte b1, b2;
-    char val1, val2;
+    int8_t val1, val2;
     if (buffer[0] == '\0') {
         return 0;
     }
@@ -701,7 +701,7 @@ void commListen() {
 void commBasic(boolean goFirst, byte * buffer) {
     unsigned int bitsRcvd = 0;
     unsigned int bitsToSend = 0;
-    char checksum = 0;
+    int8_t checksum = 0;
     int bufCur = 2;
     int result;
     if (!goFirst) {
@@ -738,8 +738,8 @@ void commBasic(boolean goFirst, byte * buffer) {
 
 //create trigger if we got a hex digit 1-F, and A/B, for a packet number
 //otherwise disable trigger
-void setupTrigger(char packetNumChr, char AB) {
-    char packetNum = hex2val(packetNumChr);
+void setupTrigger(int8_t packetNumChr, int8_t AB) {
+    int8_t packetNum = hex2val(packetNumChr);
     boolean OK = (packetNum >= 1);
     triggerPacketIndex = packetNum * 2 - 1;
     if (AB == 'a' || AB == 'A') {
@@ -767,8 +767,8 @@ void serialPrintTrigger() {
 }
 
 //return integer value of hex digit character, or -1 if not a hex digit
-char hex2val(char hexdigit) {
-    char value;
+int8_t hex2val(int8_t hexdigit) {
+    int8_t value;
     if (hexdigit >= '0' && hexdigit <= '9') {
         value = hexdigit - 0x30;
     } else if (hexdigit >= 'a' && hexdigit <= 'f') {
@@ -782,7 +782,7 @@ char hex2val(char hexdigit) {
 }
 
 //return hex digit character for lowest 4 bits of input byte
-char val2hex(byte value) {
+int8_t val2hex(int8_t value) {
     value &= 0xF;
     if (value > 9) {
         return value + 0x37;
@@ -796,8 +796,8 @@ char val2hex(byte value) {
 //if too few digits to display that number, will take the least significant
 void serialPrintHex(unsigned int number, byte numDigits) {
     const byte maxDigits = 4;
-    char i;
-    char digits[maxDigits];
+    int8_t i;
+    int8_t digits[maxDigits];
     if (numDigits > maxDigits) {
         numDigits = maxDigits;
     }
@@ -813,7 +813,7 @@ void serialPrintHex(unsigned int number, byte numDigits) {
 //try to read from serial into buffer;
 //read until end-of-line and replace that with a null terminator
 //return 0 on failure, or positive integer for number of characters read
-char serialRead(byte * buffer) {
+byte serialRead(byte * buffer) {
     unsigned long timeStart;
     unsigned long time;
     int incomingInt;
@@ -851,14 +851,13 @@ char serialRead(byte * buffer) {
 //main loop
 void loop() {
     static boolean active = false;
-    static char timingID = 'V';
+    static int8_t timingID = 'V';
     static boolean listenOnly;
     static boolean goFirst;
     static byte numPackets;
     static byte buffer[command_buffer_size];
 
     int i;
-    byte bufCursor;
 
     //process serial input
     i = serialRead(buffer);
