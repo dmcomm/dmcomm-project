@@ -946,6 +946,9 @@ void loop() {
             Serial.print(F("(paused)"));
         }
         Serial.println();
+        if (active && goFirst) {
+            delay(gofirst_repeat_ms);
+        }
     }
     
     //do it
