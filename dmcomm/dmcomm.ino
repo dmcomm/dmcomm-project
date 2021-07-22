@@ -22,13 +22,26 @@
 */
 
 
+// CODE FOR PI PICO WITH THE NEW CIRCUIT
+
+
+#include <hardware/structs/sio.h>
+#define BOARD_3V3
+
+
 //pin assignments
 
-const byte led_pin = 13;
-const byte dm_pin_out = A2;
-const byte dm_pin_notOE = A1;
-const byte dm_pin_Ain = A3;
-const byte probe_pin = 2;
+const byte led_pin = LED_BUILTIN;
+const byte dm_pin_drive_high = 19;
+const byte dm_pin_drive_low = 20;
+const byte dm_pin_weak_pull = 21;
+const byte dm_pin_Ain = A0;
+const byte probe_pin = 0;
+
+//calculated from the above
+
+constexpr uint32_t pinmask_drive_high = 1 << dm_pin_drive_high;
+constexpr uint32_t pinmask_drive_both = pinmask_drive_high | (1 << dm_pin_drive_low);
 
 
 //durations, in microseconds unless otherwise specified
@@ -171,21 +184,31 @@ void ledOff() {
 }
 
 void busDriveLow() {
-    digitalWrite(dm_pin_out, dm_times.logic_low);
-    digitalWrite(dm_pin_notOE, LOW);
+    if (dm_times.logic_high == HIGH) {
+        sio_hw->gpio_clr = pinmask_drive_high; //drive-high pin -> low
+    } else {
+        //inverted
+        sio_hw->gpio_set = pinmask_drive_high; //drive-high pin -> high
+    }
+    sio_hw->gpio_oe_set = pinmask_drive_both; //both drive pins -> output (at the same time)
 }
 
 void busDriveHigh() {
-    digitalWrite(dm_pin_out, dm_times.logic_high);
-    digitalWrite(dm_pin_notOE, LOW);
+    if (dm_times.logic_high == HIGH) {
+        sio_hw->gpio_set = pinmask_drive_high; //drive-high pin -> high
+    } else {
+        //inverted
+        sio_hw->gpio_clr = pinmask_drive_high; //drive-high pin -> low
+    }
+    sio_hw->gpio_oe_set = pinmask_drive_both; //both drive pins -> output (at the same time)
 }
 
 void busRelease() {
-    digitalWrite(dm_pin_notOE, HIGH);
-    digitalWrite(dm_pin_out, dm_times.logic_high);
-    //dm_pin_out is "don't care" on D-Com, but matters for A-Com
+    digitalWrite(dm_pin_weak_pull, dm_times.logic_high); //configure weak pull
+    sio_hw->gpio_oe_clr = pinmask_drive_both; //both drive pins -> input (at the same time)
 }
 
+/* not working due to circuit change
 void reportVoltage(unsigned int sensorValue) {
     float sensorValueF, Vmin, Vmax;
     sensorValueF = sensorValue;
@@ -287,7 +310,7 @@ void scanVoltages(boolean doReport) {
             Serial.println(F("Circuit not recognised"));
         }
     }
-}
+}*/
 
 //add specified byte to the log
 void addLogByte(byte b) {
@@ -426,9 +449,10 @@ void setup() {
     Serial.begin(9600);
     pinMode(led_pin, OUTPUT);
     pinMode(probe_pin, OUTPUT);
-    pinMode(dm_pin_out, OUTPUT);
-    pinMode(dm_pin_notOE, OUTPUT);
     pinMode(dm_pin_Ain, INPUT);
+    pinMode(dm_pin_drive_high, INPUT); //will change during output
+    pinMode(dm_pin_drive_low, INPUT);  //will change during output
+    pinMode(dm_pin_weak_pull, OUTPUT);
     ledOn();
     initDmTimes('V');
     busRelease();
@@ -868,8 +892,9 @@ void loop() {
         Serial.write(buffer, i);
         Serial.print(F(" -> "));
         if (buffer[0] == 't' || buffer[0] == 'T') {
-            Serial.println(F("[test voltages]"));
-            scanVoltages(true);
+            //Serial.println(F("[test voltages]"));
+            //scanVoltages(true);
+            Serial.println(F("[test voltages: currently unavailable]"));
         }
         if ((buffer[0] == 'd' || buffer[0] == 'D') && i >= 2) {
             if (buffer[1] == '0' || buffer[1] == 'o' || buffer[1] == 'O') {
