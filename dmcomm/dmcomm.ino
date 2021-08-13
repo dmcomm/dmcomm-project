@@ -32,7 +32,7 @@
 //pin assignments
 
 const byte led_pin = LED_BUILTIN;
-const byte dm_pin_drive_high = 19;
+const byte dm_pin_drive_signal = 19;
 const byte dm_pin_drive_low = 20;
 const byte dm_pin_weak_pull = 21;
 const byte dm_pin_Ain = A0;
@@ -40,8 +40,8 @@ const byte probe_pin = 0;
 
 //calculated from the above
 
-constexpr uint32_t pinmask_drive_high = 1 << dm_pin_drive_high;
-constexpr uint32_t pinmask_drive_both = pinmask_drive_high | (1 << dm_pin_drive_low);
+constexpr uint32_t pinmask_drive_signal = 1 << dm_pin_drive_signal;
+constexpr uint32_t pinmask_drive_both = pinmask_drive_signal | (1 << dm_pin_drive_low);
 
 
 //durations, in microseconds unless otherwise specified
@@ -185,20 +185,20 @@ void ledOff() {
 
 void busDriveLow() {
     if (dm_times.logic_high == HIGH) {
-        sio_hw->gpio_clr = pinmask_drive_high; //drive-high pin -> low
+        sio_hw->gpio_clr = pinmask_drive_signal; //drive-signal pin -> low
     } else {
         //inverted
-        sio_hw->gpio_set = pinmask_drive_high; //drive-high pin -> high
+        sio_hw->gpio_set = pinmask_drive_signal; //drive-signal pin -> high
     }
     sio_hw->gpio_oe_set = pinmask_drive_both; //both drive pins -> output (at the same time)
 }
 
 void busDriveHigh() {
     if (dm_times.logic_high == HIGH) {
-        sio_hw->gpio_set = pinmask_drive_high; //drive-high pin -> high
+        sio_hw->gpio_set = pinmask_drive_signal; //drive-signal pin -> high
     } else {
         //inverted
-        sio_hw->gpio_clr = pinmask_drive_high; //drive-high pin -> low
+        sio_hw->gpio_clr = pinmask_drive_signal; //drive-signal pin -> low
     }
     sio_hw->gpio_oe_set = pinmask_drive_both; //both drive pins -> output (at the same time)
 }
@@ -450,7 +450,7 @@ void setup() {
     pinMode(led_pin, OUTPUT);
     pinMode(probe_pin, OUTPUT);
     pinMode(dm_pin_Ain, INPUT);
-    pinMode(dm_pin_drive_high, INPUT); //will change during output
+    pinMode(dm_pin_drive_signal, INPUT); //will change during output
     pinMode(dm_pin_drive_low, INPUT);  //will change during output
     pinMode(dm_pin_weak_pull, OUTPUT);
     ledOn();
