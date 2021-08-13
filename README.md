@@ -5,9 +5,9 @@ Project using Arduino to communicate with Digimon toys, by BladeSabre ( bladethe
 
 ## Overview
 
-On the hardware side, some circuitry is needed to interface the Arduino with the toys. See the `circuit` folder for details.
+On the hardware side, some circuitry is needed to interface the Arduino with the toys. See the [guide](https://dmcomm.github.io/guide/nano/) for details.
 
-The core of the project is the `dmcomm` Arduino sketch. This accepts instructions via the serial interface, communicates with the toys, and responds via serial with the results.
+The core of the project is the `dmcomm` Arduino sketch found here. This accepts instructions via the serial interface, communicates with the toys, and responds via serial with the results.
 
 Software is needed to send commands and do something with the results. This could be the Arduino IDE serial monitor. Alternatively, the `dmscope` script provided here displays the debug information. Other software is available with more advanced functions, including the [Alpha](https://www.alphahub.site/) project and the [ACom Wiki](https://play.google.com/store/apps/details?id=com.mintmaker.acomwiki) Android app.
 

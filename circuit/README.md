@@ -11,7 +11,7 @@ This project was originally designed for Arduino Uno, but the (smaller and cheap
 
 ## A-Com
 
-It is possible to achieve results almost as good as a D-Com with just two resistors. As such, the D-Com design is largely obsolete. See https://www.alphahub.site/guide .
+It is possible to achieve results almost as good as a D-Com with just two resistors. As such, the D-Com design is largely obsolete. See https://dmcomm.github.io/guide/nano/ .
 
 ## D-Com
 
