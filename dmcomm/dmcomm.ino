@@ -22,6 +22,10 @@
 */
 
 
+#define VERSION F("dmcomm v4.0+wip")
+//optionally define BUILD_INFO in compiler flags, e.g. commit ID, board ID
+
+
 //pin assignments
 
 const byte led_pin = 13;
@@ -867,6 +871,13 @@ void loop() {
         Serial.print(F(" bytes: "));
         Serial.write(buffer, i);
         Serial.print(F(" -> "));
+        if (buffer[0] == '?') {
+            Serial.println(F("[version]"));
+            Serial.println(VERSION);
+#ifdef BUILD_INFO
+            Serial.println(BUILD_INFO);
+#endif
+        }
         if (buffer[0] == 't' || buffer[0] == 'T') {
             Serial.println(F("[test voltages]"));
             scanVoltages(true);
