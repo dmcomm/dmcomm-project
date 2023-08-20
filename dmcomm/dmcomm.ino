@@ -22,8 +22,7 @@
 */
 
 
-#define VERSION F("dmcomm v4.0+wip")
-//optionally define BUILD_INFO in compiler flags, e.g. commit ID, board ID
+#include "dmcomm_build_info.h"
 
 
 //pin assignments
@@ -862,21 +861,20 @@ void loop() {
     static byte buffer[command_buffer_size];
 
     int i;
+    bool info = false;
 
     //process serial input
     i = serialRead(buffer);
     if (i > 0) {
-        Serial.print(F("got "));
-        Serial.print(i, DEC);
-        Serial.print(F(" bytes: "));
-        Serial.write(buffer, i);
-        Serial.print(F(" -> "));
-        if (buffer[0] == '?') {
-            Serial.println(F("[version]"));
-            Serial.println(VERSION);
-#ifdef BUILD_INFO
-            Serial.println(BUILD_INFO);
-#endif
+        if ((buffer[0] == 'i' || buffer[0] == 'I') && buffer[1] == '\0') {
+            Serial.println(DMCOMM_BUILD_INFO);
+            info = true;
+        } else {
+            Serial.print(F("got "));
+            Serial.print(i, DEC);
+            Serial.print(F(" bytes: "));
+            Serial.write(buffer, i);
+            Serial.print(F(" -> "));
         }
         if (buffer[0] == 't' || buffer[0] == 'T') {
             Serial.println(F("[test voltages]"));
@@ -953,7 +951,7 @@ void loop() {
             Serial.print(numPackets);
             Serial.print(F(" packets]"));
         }
-        if (!active) {
+        if (!active && !info) {
             Serial.print(F("(paused)"));
         }
         Serial.println();
@@ -961,7 +959,7 @@ void loop() {
             delay(gofirst_repeat_ms);
         }
     }
-    
+
     //do it
     startLog();
     initDmTimes(timingID);
