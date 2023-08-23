@@ -39,7 +39,7 @@ jobs:
     - name: Write build info
       run: >
         echo '#define DMCOMM_BUILD_INFO
-        F("name = dmcomm-original\r\nversion = ${{ env.VERSION }}\r\nboard = ${{ matrix.label }}")'
+        F("name = \"dmcomm-original\"\r\nversion = \"${{ env.VERSION }}\"\r\nboard = \"${{ matrix.label }}\"")'
         > dmcomm/dmcomm_build_info.h
     - name: Compile sketch
       uses: arduino/compile-sketches@v1

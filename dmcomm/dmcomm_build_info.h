@@ -3,4 +3,4 @@
 // This file is intended to be overwritten by the build CI.
 // Does not have its own include guards, should be checked by includer.
 
-#define DMCOMM_BUILD_INFO F("name = dmcomm-original")
+#define DMCOMM_BUILD_INFO F("name = \"dmcomm-original\"")
